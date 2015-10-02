@@ -33,8 +33,8 @@ class SeqDB(collections.Mapping):
 
     def __iter__(self):
         session = self.Session()
-        for row in session.Query(UP):
-            yield SeqIO.read(StringIO(row[0]), 'swiss')
+        for row in session.query(UP.raw_record):
+            yield SeqIO.read(StringIO(blosc.decompress(row[0])), 'swiss')
         session.close()
 
     def keys(self):
@@ -58,7 +58,7 @@ class SeqDB(collections.Mapping):
         session = self.Session()
         res = session.query(UP.raw_record).filter_by(**{attr: value})
         session.close()
-        return [SeqIO.read(StringIO(blosc.decompress(i[0])), 'swiss') for i in res]
+        return (SeqIO.read(StringIO(blosc.decompress(i[0])), 'swiss') for i in res)
 
 
 def create_index(flatfiles, database='postgresql://localhost/uniprot'):
