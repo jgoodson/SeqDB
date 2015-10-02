@@ -19,7 +19,7 @@ from SwissProtUtils import parse_raw_swiss
 
 Base = declarative_base()
 
-logger = logging.getLogger('SeqDB')
+logger = logging.getLogger(__name__)
 
 class UniprotProtein(Base):
     __tablename__ = 'proteins'
@@ -184,4 +184,3 @@ def initialize_database(seq_files, database, filter_fn=None):
     proteins = itertools.chain(*[parse_raw_swiss(f, filter_fn) for f in seq_files])
     add_proteins_multi(proteins, database)
     logger.info("--initialized database\n", )
-
