@@ -6,8 +6,9 @@ from time import time
 from datetime import date
 from multiprocessing import Pool
 from cStringIO import StringIO
-import blosc
+import logging
 
+import blosc
 from Bio import SeqIO
 import sqlalchemy
 import sqlalchemy.orm
@@ -19,6 +20,7 @@ from SwissProtUtils import parse_raw_swiss, filter_proks
 
 Base = declarative_base()
 
+logger = logging.getLogger('SeqDB')
 
 class UniprotProtein(Base):
     __tablename__ = 'proteins'
@@ -69,9 +71,11 @@ class UniprotProtein(Base):
                'PIR={PIR}\n' \
                'Uni_name={Uni_name}'.format(**data)
 
+
 def grouper(iterable, n):
     args = [iter(iterable)] * n
     return (_ for _ in itertools.izip_longest(*args, fillvalue=None) if not _ is None)
+
 
 def get_refs(record):
     good = ['RefSeq', 'STRING', 'GeneID', 'PIR', 'Unigene', 'EMBL']
@@ -83,31 +87,63 @@ def get_refs(record):
     return result
 
 
-def add_proteins(sequences, database):
+def add_proteins(sequences, database, multiprocessing=15):
+
+    def _init_worker(db):
+        global SessionMaker
+        SessionMaker = get_sessionmaker(db)
+
+    def log_update(completed, current):
+        logger.info('-Completed {} records at {:.2f}r/s ({} total) in {:.1f}s'.format(
+            current,
+            current/(time()-t),
+            completed,
+            time()-start), )
     cs = 1000
 
-    p = Pool(15, init_worker, [database])
+    if multiprocessing > 1:
+        p = Pool(multiprocessing, _init_worker, [database])
+    else:
+        # I am only using the pool object for .imap() so the
+        # itertools modules provides the same function non-parallel...
+        p = itertools
 
     chunks = grouper(sequences, cs)
 
-    completed = 0
-    current = 0
+    completed, current = 0, 0
     t = time()
     start = t
     for done in p.imap_unordered(add_chunk, chunks, 10):
         completed += done
         current += done
         if current >= 50000:
-            print('-Completed {} records at {:.2f}r/s ({} total) in {:.1f}s'.format(
-                current,
-                current/(time()-t),
-                completed,
-                time()-start), file=sys.stderr)
+            log_update(completed, current)
             current = 0
             t = time()
 
     p.close()
     p.join()
+
+
+def add_chunk(chunk):
+    global SessionMaker
+    session = SessionMaker()
+    x = 0
+    for raw_record in (k for k in chunk if k):
+        record = SeqIO.read(StringIO(raw_record), 'swiss')
+        protein = create_protein(record, raw_record)
+        session.merge(protein)
+        x += 1
+
+    session.commit()
+    session.close()
+    return x
+
+
+def get_sessionmaker(db):
+    p_engine = sqlalchemy.create_engine(db)
+    SessionMaker = sqlalchemy.orm.sessionmaker(bind=p_engine)
+    return SessionMaker
 
 
 def _get_date(record):
@@ -134,31 +170,19 @@ def create_protein(record, raw_record):
     )
 
 
-def add_chunk(chunk):
-    global Session
-    session = Session()
-    x = 0
-    for raw_record in (k for k in chunk if k):
-        record = SeqIO.read(StringIO(raw_record), 'swiss')
-        protein = create_protein(record, raw_record)
-        session.merge(protein)
-        x += 1
-
+def add_protein(raw_record, session):
+    record = SeqIO.read(StringIO(raw_record), 'swiss')
+    protein = create_protein(record, raw_record)
+    session.merge(protein)
     session.commit()
-    session.close()
-    return x
-
-def init_worker(db):
-    global Session
-    p_engine = sqlalchemy.create_engine(db)
-    Session = sqlalchemy.orm.sessionmaker(bind=p_engine)
 
 
 def initialize_database(seq_files, database, filter_fn=None):
-    print("--initializating database\n", file=sys.stderr)
+    logger.info("--initializating database\n", )
     engine = sqlalchemy.create_engine(database)
     Base.metadata.create_all(engine)
 
     proteins = itertools.chain(*[parse_raw_swiss(f, filter_fn) for f in seq_files])
     add_proteins(proteins, database)
-    print("--initialized database\n", file=sys.stderr)
+    logger.info("--initialized database\n", )
+
