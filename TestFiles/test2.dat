@@ -1,0 +1,67 @@
+ID   2NPD_STAA2              Reviewed;         355 AA.
+AC   A6U025;
+DT   20-JAN-2009, integrated into UniProtKB/Swiss-Prot.
+DT   21-AUG-2007, sequence version 1.
+DT   16-SEP-2015, entry version 57.
+DE   RecName: Full=Probable nitronate monooxygenase;
+DE            EC=1.13.12.16;
+DE   AltName: Full=Nitroalkane oxidase;
+GN   OrderedLocusNames=SaurJH1_0937;
+OS   Staphylococcus aureus (strain JH1).
+OC   Bacteria; Firmicutes; Bacilli; Bacillales; Staphylococcus.
+OX   NCBI_TaxID=359787;
+RN   [1]
+RP   NUCLEOTIDE SEQUENCE [LARGE SCALE GENOMIC DNA].
+RC   STRAIN=JH1;
+RG   US DOE Joint Genome Institute;
+RA   Copeland A., Lucas S., Lapidus A., Barry K., Detter J.C.,
+RA   Glavina del Rio T., Hammon N., Israni S., Dalin E., Tice H.,
+RA   Pitluck S., Chain P., Malfatti S., Shin M., Vergez L., Schmutz J.,
+RA   Larimer F., Land M., Hauser L., Kyrpides N., Ivanova N., Tomasz A.,
+RA   Richardson P.;
+RT   "Complete sequence of chromosome of Staphylococcus aureus subsp.
+RT   aureus JH1.";
+RL   Submitted (JUN-2007) to the EMBL/GenBank/DDBJ databases.
+CC   -!- FUNCTION: Catalyzes the oxidation of alkyl nitronates to produce
+CC       the corresponding carbonyl compounds and nitrites. {ECO:0000250}.
+CC   -!- CATALYTIC ACTIVITY: Ethylnitronate + O(2) = acetaldehyde + nitrite
+CC       + other products.
+CC   -!- COFACTOR:
+CC       Name=FMN; Xref=ChEBI:CHEBI:58210; Evidence={ECO:0000250};
+CC       Note=Binds 1 FMN per subunit. {ECO:0000250};
+CC   -!- SIMILARITY: Belongs to the nitronate monooxygenase family.
+CC       {ECO:0000305}.
+DR   EMBL; CP000736; ABR51793.1; -; Genomic_DNA.
+DR   RefSeq; WP_000267236.1; NC_009632.1.
+DR   ProteinModelPortal; A6U025; -.
+DR   EnsemblBacteria; ABR51793; ABR51793; SaurJH1_0937.
+DR   KEGG; sah:SaurJH1_0937; -.
+DR   PATRIC; 19533715; VBIStaAur98826_0970.
+DR   eggNOG; COG2070; -.
+DR   HOGENOM; HOG000123287; -.
+DR   KO; K00459; -.
+DR   OMA; PLNLNFF; -.
+DR   OrthoDB; EOG6G7R1T; -.
+DR   BioCyc; SAUR359787:GCG4-961-MONOMER; -.
+DR   GO; GO:0018580; F:nitronate monooxygenase activity; IEA:UniProtKB-EC.
+DR   Gene3D; 3.20.20.70; -; 1.
+DR   InterPro; IPR013785; Aldolase_TIM.
+DR   InterPro; IPR004136; NMO.
+DR   Pfam; PF03060; NMO; 1.
+PE   3: Inferred from homology;
+KW   Flavoprotein; FMN; Monooxygenase; Oxidoreductase.
+FT   CHAIN         1    355       Probable nitronate monooxygenase.
+FT                                /FTId=PRO_0000360892.
+FT   NP_BIND      21     23       FMN. {ECO:0000250}.
+FT   NP_BIND     216    218       FMN. {ECO:0000250}.
+FT   NP_BIND     239    240       FMN. {ECO:0000250}.
+FT   ACT_SITE    182    182       Proton acceptor. {ECO:0000255}.
+FT   BINDING     182    182       Substrate. {ECO:0000250}.
+SQ   SEQUENCE   355 AA;  38634 MW;  6B64191B9A986085 CRC64;
+     MWNKNRLTQM LSIEYPIIQA GMAGSTTPKL VASVSNSGGL GTIGAGYFNT QQLEDEIDYV
+     RQLTSNSFGV NVFVPSQQSY TSSQIENMNA WLKPYRRALH LEEPVVKIIE EQQFKCHIDT
+     IIKKQVPVCC FTFGIPNESI IERLKEANIK LIGTATSVDE AIANEKAGMD AIVAQGSEAG
+     GHRGSFLKPK NQLPMVGTIS LVPQIVDVVS IPVIAAGGIM DGRGVLASIV LGAEGVQMGT
+     AFLTSQDSNA SELLRDAIIN SKETDTVVTK AFSGKLARGI NNRFIEEMSQ YEGDIPDYPI
+     QNELTSSIRK AAANIGDKEL THMWSGQSPR LATTHPANTI MSNIINQINQ IMQYK
+//
