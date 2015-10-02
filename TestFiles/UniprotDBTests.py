@@ -1,6 +1,7 @@
 from unittest import TestCase, TestSuite
 from cStringIO import StringIO
 import tempfile
+from Bio.SeqRecord import SeqRecord
 
 import UniprotDB
 
@@ -31,6 +32,8 @@ class IterationTest(SimpleSqlite):
 
     def runTest(self):
         self.assertEqual(self.index.iterkeys().next(), 'Q92AT0')
+        for record in self.index:
+            self.assertIsInstance(record, SeqRecord)
 
 
 class KeysTest(SimpleSqlite):
@@ -43,3 +46,9 @@ class LenTest(SimpleSqlite):
 
     def runTest(self):
         self.assertEqual(len(self.index), 1)
+
+
+class GetByTest(SimpleSqlite):
+
+    def runTest(self):
+        self.assertEqual(self.index.get_by('EMBL', 'AL596170').next().id, 'Q92AT0')
