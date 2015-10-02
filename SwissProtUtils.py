@@ -39,16 +39,13 @@ def parse_raw_swiss(filename, filter_fn=None):
     SwissProt format entry and returns a boolean.  If True, the string is returned
     in the iterator, if False it is not.
     """
-    if not filter_fn:
-        filter_fn = lambda r: True
     handle = bgzf.open(filename)
     while True:
         res = _get_record(handle)
         if not res:
             break
-        if filter_fn(res):
-            yield res
 
-if __name__ == '__main__':
-    it = parse_raw_swiss('/Volumes/OldSynoRaid/protein/uniprot_sprot.prok.dat.bgz', filter_fn=filter_proks)
-    print(it.next())
+        if filter_fn and filter_fn(res):
+            yield res
+        elif not filter_fn:
+            yield res
