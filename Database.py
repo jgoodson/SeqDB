@@ -1,6 +1,5 @@
 from __future__ import print_function, division
 
-import sys
 import itertools
 from time import time
 from datetime import date
@@ -16,7 +15,7 @@ from sqlalchemy import Column, Integer, String, Date, LargeBinary
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declarative_base
 
-from SwissProtUtils import parse_raw_swiss, filter_proks
+from SwissProtUtils import parse_raw_swiss
 
 Base = declarative_base()
 
@@ -87,7 +86,7 @@ def get_refs(record):
     return result
 
 
-def add_proteins(sequences, database, multiprocessing=15):
+def add_proteins_multi(sequences, database, processes=15):
 
     def _init_worker(db):
         global SessionMaker
@@ -101,28 +100,28 @@ def add_proteins(sequences, database, multiprocessing=15):
             time()-start), )
     cs = 1000
 
-    if multiprocessing > 1:
-        p = Pool(multiprocessing, _init_worker, [database])
+    if processes > 1:
+        p = Pool(processes, _init_worker, [database])
+        map_fn = p.imap_unordered
     else:
-        # I am only using the pool object for .imap() so the
-        # itertools modules provides the same function non-parallel...
-        p = itertools
+        _init_worker(database)
+        map_fn = itertools.imap
 
     chunks = grouper(sequences, cs)
 
     completed, current = 0, 0
     t = time()
     start = t
-    for done in p.imap_unordered(add_chunk, chunks, 10):
+    for done in map_fn(add_chunk, chunks):
         completed += done
         current += done
         if current >= 50000:
             log_update(completed, current)
             current = 0
             t = time()
-
-    p.close()
-    p.join()
+    if processes > 1:
+        p.close()
+        p.join()
 
 
 def add_chunk(chunk):
@@ -183,6 +182,6 @@ def initialize_database(seq_files, database, filter_fn=None):
     Base.metadata.create_all(engine)
 
     proteins = itertools.chain(*[parse_raw_swiss(f, filter_fn) for f in seq_files])
-    add_proteins(proteins, database)
+    add_proteins_multi(proteins, database)
     logger.info("--initialized database\n", )
 
