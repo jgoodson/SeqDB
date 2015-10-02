@@ -1,10 +1,13 @@
 import re
 import os
 from configparser import ConfigParser
+import logging
 
 from Bio import Entrez
 
 from JEntrez import JEntrez
+
+logger = logging.getLogger(__name__)
 
 conf = ConfigParser()
 base = os.path.dirname(os.path.realpath(__file__))
@@ -24,7 +27,7 @@ def get_source_seq(protein):
         if feature.type == 'CDS' and 'translation' in feature.qualifiers and feature.qualifiers['translation'][0] == protein_seq:
             break
     else:
-        print 'Feature not found {}'.format(protein.id)
-        return False
+        logger.error('Feature not found {}'.format(protein.id))
+        return genome, False
     return genome, feature
 
