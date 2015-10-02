@@ -29,13 +29,6 @@ class JEntrez ():
                 self.genomes.add(name)
                 self.gmatches.add(match)
 
-    def getRepoFasta(self, accession_number):
-        if accession_number in self.genomes:
-            return self.repo+'/'+accession_number+'.fa'
-        for x in range(10, 0, -1):
-            if accession_number+'.'+str(x) in self.genomes:
-                return self.repo+'/'+accession_number+'.'+str(x)+'.fa'
-
     def getRepoVersionAcc(self, accession_number):
         if accession_number in self.genomes:
             return accession_number
