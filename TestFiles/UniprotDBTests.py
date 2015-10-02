@@ -1,4 +1,4 @@
-from unittest import TestCase
+from unittest import TestCase, TestSuite
 from cStringIO import StringIO
 import tempfile
 
@@ -7,8 +7,8 @@ import UniprotDB
 
 class CreateTest(TestCase):
 
-    def test(self):
-        UniprotDB.create_index(['TestFiles/test.dat.bgz'], self.database)
+    def runTest(self):
+        UniprotDB.create_index(['test.dat.bgz'], self.database)
         index = UniprotDB.SeqDB(self.database)
         self.assertEqual(index.get('Q92AT0').id, 'Q92AT0')
 
@@ -23,23 +23,23 @@ class CreateTest(TestCase):
 class SimpleSqlite(TestCase):
 
     def setUp(self):
-        self.database = 'sqlite:///TestFiles/test.sqlite'
+        self.database = 'sqlite:///test.sqlite'
         self.index = UniprotDB.SeqDB(self.database)
 
 
 class IterationTest(SimpleSqlite):
 
-    def test(self):
+    def runTest(self):
         self.assertEqual(self.index.iterkeys().next(), 'Q92AT0')
 
 
 class KeysTest(SimpleSqlite):
 
-    def test(self):
+    def runTest(self):
         self.assertEqual(self.index.keys()[0], 'Q92AT0')
 
 
 class LenTest(SimpleSqlite):
 
-    def test(self):
+    def runTest(self):
         self.assertEqual(len(self.index), 1)
