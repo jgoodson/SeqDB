@@ -1,6 +1,9 @@
+from __future__ import print_function
+
 import unittest
 import tempfile
-import sys
+import os
+import pymongo
 
 from UniprotDB.SeqDB import SeqDB
 from UniprotDB.MongoDB import MongoDatabase
@@ -35,9 +38,6 @@ class SeqDBTests():
     def test_getby(self):
         self.assertEqual(self.s.get_by('taxid', '654924')[0].id, 'Q6GZX4')
 
-    def test_repr(self):
-        print(self.s['Q6GZX4'].id, file=sys.stderr)
-
 
 class SqliteSetup(unittest.TestCase, SeqDBTests):
 
@@ -54,12 +54,29 @@ class SqliteSetup(unittest.TestCase, SeqDBTests):
 
 class MongoSetup(unittest.TestCase, SeqDBTests):
 
+    def setUp(self):
+        if not self.success:
+            self.skipTest(reason='MongoDB not available for testing')
+
     @classmethod
     def setUpClass(self):
-        self.mdb = MongoDatabase((), 'test_uni')
-        self.mdb.initialize_database(['TestFiles/short.dat.gz'])
-        self.s = SeqDB(self.mdb)
+        try:
+            pymongo.MongoClient(serverSelectionTimeoutMS=500).server_info()
+            self.success = True
+        except pymongo.errors.ServerSelectionTimeoutError:
+            self.success = False
+
+        if self.success:
+            self.mdb = MongoDatabase((), 'test_uni')
+            self.mdb = MongoDatabase((), 'test_uni')
+            self.mdb.initialize_database(['TestFiles/short.dat.gz'])
+            self.s = SeqDB(self.mdb)
 
     @classmethod
     def tearDownClass(self):
-       self.mdb.col.drop()
+        if self.success:
+            self.mdb.col.drop()
+
+
+if __name__ == '__main__':
+    unittest.main()
