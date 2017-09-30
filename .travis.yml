@@ -7,4 +7,3 @@ script: python UniprotDBTests.py
 services: mongodb
 os:
   - linux
-  - osx
