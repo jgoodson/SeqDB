@@ -1,4 +1,4 @@
-biopython
-pymongo
-zstandard
-sqlalchemy
+biopython>=1.6.2
+pymongo>=3.0.3
+zstandard>=0.5.2
+sqlalchemy>=1.0.2
