@@ -63,3 +63,7 @@ class MongoSetup(unittest.TestCase, SeqDBTests):
     @classmethod
     def tearDownClass(self):
        self.mdb.col.drop()
+
+
+if __name__ == '__main__':
+    unittest.main()
