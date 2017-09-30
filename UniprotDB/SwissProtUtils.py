@@ -1,6 +1,7 @@
 from __future__ import print_function, division
 
 import re
+import gzip
 import os
 import tempfile
 import subprocess
@@ -52,6 +53,16 @@ def parse_raw_swiss(filename, filter_fn=None):
     if not filter_fn:
         filter_fn = lambda r: True
     #handle = gzip.open(filename)
+
+    with gzip.open(filename) as handle:
+        while True:
+            res = _get_record(handle)
+            if not res:
+                break
+            if filter_fn(res):
+                yield res
+
+def placeholder():
     #TODO make this way more elegant
     with tempfile.TemporaryDirectory() as tdir:
         fifo = tdir+'/fifo'
@@ -65,3 +76,4 @@ def parse_raw_swiss(filename, filter_fn=None):
                     break
                 if filter_fn(res):
                     yield res
+

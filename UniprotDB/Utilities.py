@@ -4,9 +4,7 @@ except ImportError:
     from itertools import zip_longest
 from datetime import datetime
 from collections import defaultdict
-from io import BytesIO as IOFunc
 
-from Bio import SeqIO
 
 def grouper(iterable, n):
     """
@@ -47,7 +45,7 @@ def get_refs(record):
     result = defaultdict(list)
     result['Uni_name'] = [record.name]
     for ref in record.dbxrefs:
-        ref = ref.split(':', maxsplit=1)
+        ref = ref.split(':', 1)
         result[ref[0]].append(ref[1])
     return result
 

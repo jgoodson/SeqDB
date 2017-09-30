@@ -18,10 +18,6 @@ class SeqDB(collections.Mapping):
         for item in self.database.iter():
             yield item
 
-    def iterkeys(self):
-        for key in self.database.iterkeys():
-            yield key
-
     def keys(self):
         return self.database.keys()
 

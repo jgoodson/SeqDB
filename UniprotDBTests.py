@@ -14,9 +14,6 @@ class SeqDBTests():
     def iter_test(self):
         self.assertEqual(len(next(iter(self.s)).id), 6)
 
-    def iterkeys_test(self):
-        self.assertEqual(len(next(self.s.iterkeys())), 6)
-
     def keys_test(self):
         self.assertEqual(len(self.s.keys()), 4)
 

@@ -3,11 +3,16 @@ from __future__ import print_function, division
 import itertools
 import sys
 import os.path
+import bson
 
 try:
+    #Python2
     from itertools import izip_longest as zip_longest
+    from itertools import imap
 except ImportError:
+    #Python3
     from itertools import zip_longest
+    imap = map
 
 from multiprocessing import Pool, cpu_count
 from io import BytesIO as IOFunc
@@ -36,10 +41,12 @@ class MongoDatabase(object):
         self.initialized = False
         try:
             dict_data = self.client[database].proteins.find_one('dict_data')['dict_data']
-            self.decomp = zstd.ZstdDecompressor(dict_data=zstd.ZstdCompressionDict(dict_data))
+            self.decompressor = zstd.ZstdDecompressor(dict_data=zstd.ZstdCompressionDict(dict_data))
             self.initialized = True
         except Exception as e:
             print("Database not initialized\n", file=sys.stderr)
+        self.decomp = lambda data: self.decompressor.decompress(data)
+
 
     def get(self, item):
         """
@@ -51,13 +58,14 @@ class MongoDatabase(object):
         t = self.col.find_one({'$or': [{i: item} for i in self.ids]})
         if t is None:
             return None
-        r = SeqIO.read(IOFunc(self.decomp.decompress(t['raw_record'])), 'swiss')
+
+        r = SeqIO.read(IOFunc(self.decomp(t['raw_record'])), 'swiss')
         return r
 
 
     def iter(self):
         for entry in self.col.find({'Uni_name': {'$exists': True}}):
-            yield SeqIO.read(IOFunc(self.decomp.decompress(entry['raw_record'])), 'swiss')
+            yield SeqIO.read(IOFunc(self.decomp(entry['raw_record'])), 'swiss')
 
     def iterkeys(self):
         keys = (i['_id'] for i in self.col.find({'Uni_name': {'$exists': True}},
@@ -80,7 +88,7 @@ class MongoDatabase(object):
         :return: list of SeqRecords
         """
         res = self.col.find({attr: value}, {'raw_record': 1})
-        ret = [SeqIO.read(IOFunc(self.decomp.decompress(i['raw_record'])), 'swiss') for i in res]
+        ret = [SeqIO.read(IOFunc(self.decomp(i['raw_record'])), 'swiss') for i in res]
         return ret
 
     def initialize_database(self, seq_files,
@@ -93,9 +101,9 @@ class MongoDatabase(object):
         self.client[self.database].proteins.drop()
         with open(zstd_dict_file, 'rb') as i:
             d = i.read()
-            self.client[self.database].proteins.insert_one({'_id': 'dict_data', 'dict_data': d})
+            self.client[self.database].proteins.insert_one({'_id': 'dict_data', 'dict_data': bson.binary.Binary(d)})
             dict_data = self.client[self.database].proteins.find_one('dict_data')['dict_data']
-            self.decomp = zstd.ZstdDecompressor(dict_data=zstd.ZstdCompressionDict(dict_data))
+            self.decompressor = zstd.ZstdDecompressor(dict_data=zstd.ZstdCompressionDict(dict_data))
 
         proteins = itertools.chain(*[parse_raw_swiss(f, filter_fn) for f in seq_files])
         _add_proteins(proteins, self.host, self.database, chunksize=chunksize, processes=processes)
@@ -122,11 +130,13 @@ def _add_proteins(sequences, host, database, chunksize, processes):
     :return: None
     """
 
-    p = Pool(processes, _init_worker, (host, database))
+    #p = Pool(processes, _init_worker, (host, database))
+    _init_worker(host, database)
     chunks = grouper(sequences, chunksize)
 
     if tqdm: pbar=tqdm()
-    for done in p.imap_unordered(_add_chunk, chunks):
+    #for done in p.imap_unordered(_add_chunk, chunks):
+    for done in imap(_add_chunk, chunks):
         if tqdm: pbar.update(done)
     if tqdm: p.close()
 
@@ -185,6 +195,6 @@ def _create_protein(raw_record):
         taxid=record.annotations['ncbi_taxid'][0],
         description=record.description,
         updated=get_date(record),
-        raw_record=compressor.compress(raw_record),
+        raw_record=bson.binary.Binary(compressor.compress(raw_record)),
         **get_refs(record)
     )
