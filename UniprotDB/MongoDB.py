@@ -1,20 +1,21 @@
 from __future__ import print_function, division
 
 import itertools
-import sys
 import os.path
+
 import bson
 
 try:
-    #Python2
+    # Python2
     from itertools import izip_longest as zip_longest
     from itertools import imap
 except ImportError:
-    #Python3
+    # Python3
     from itertools import zip_longest
+
     imap = map
 
-from multiprocessing import Pool, cpu_count
+from multiprocessing import cpu_count, Pool
 from io import BytesIO as IOFunc
 import zstd
 
@@ -23,6 +24,7 @@ from Bio import SeqIO
 import pymongo
 
 from UniprotDB.SwissProtUtils import parse_raw_swiss
+
 try:
     from tqdm import tqdm
 except ImportError:
@@ -43,10 +45,9 @@ class MongoDatabase(object):
             dict_data = self.client[database].proteins.find_one('dict_data')['dict_data']
             self.decompressor = zstd.ZstdDecompressor(dict_data=zstd.ZstdCompressionDict(dict_data))
             self.initialized = True
-        except Exception as e:
-            print("Database not initialized\n", file=sys.stderr)
+        except TypeError:
+            pass
         self.decomp = lambda data: self.decompressor.decompress(data)
-
 
     def get(self, item):
         """
@@ -61,7 +62,6 @@ class MongoDatabase(object):
 
         r = SeqIO.read(IOFunc(self.decomp(t['raw_record'])), 'swiss')
         return r
-
 
     def iter(self):
         for entry in self.col.find({'Uni_name': {'$exists': True}}):
@@ -93,11 +93,11 @@ class MongoDatabase(object):
 
     def initialize_database(self, seq_files,
                             filter_fn=None,
-                            zstd_dict_file=os.path.realpath(os.path.dirname(__file__))+'/cc16.zstd_dict',
+                            zstd_dict_file=os.path.realpath(os.path.dirname(__file__)) + '/cc16.zstd_dict',
                             chunksize=500,
-                            processes=cpu_count()-1):
+                            processes=cpu_count() - 1):
 
-        #print("--initializating database\n", file=sys.stderr)
+        # print("--initializating database\n", file=sys.stderr)
         self.client[self.database].proteins.drop()
         with open(zstd_dict_file, 'rb') as i:
             d = i.read()
@@ -113,9 +113,9 @@ class MongoDatabase(object):
                    'GO', 'InterPro', 'Pfam', 'TIGRFAMs', 'PROSITE']
         for field in indices:
             self.client[self.database].proteins.create_index(keys=[(field, pymongo.ASCENDING)],
-                                                   partialFilterExpression={field: {'$exists': True}})
+                                                             partialFilterExpression={field: {'$exists': True}})
 
-        #print("--initialized database\n", file=sys.stderr)
+            # print("--initialized database\n", file=sys.stderr)
 
 
 def _add_proteins(sequences, host, database, chunksize, processes):
@@ -129,18 +129,26 @@ def _add_proteins(sequences, host, database, chunksize, processes):
     :param processes: Number of workers
     :return: None
     """
-
-    #p = Pool(processes, _init_worker, (host, database))
-    _init_worker(host, database)
     chunks = grouper(sequences, chunksize)
 
-    if tqdm: pbar=tqdm()
-    #for done in p.imap_unordered(_add_chunk, chunks):
-    for done in imap(_add_chunk, chunks):
-        if tqdm: pbar.update(done)
-    if tqdm: p.close()
+    # TODO progressbar
+    if tqdm:
+        pbar = tqdm()
+    if processes > 1:
+        p = Pool(processes, _init_worker, (host, database))
+        for done in p.imap_unordered(_add_chunk, chunks):
+            if tqdm:
+                pbar.update(done)
+    else:
+        _init_worker(host, database)
+        for done in imap(_add_chunk, chunks):
+            if tqdm:
+                pbar.update(done)
+    if tqdm:
+        pbar.close()
 
 
+# noinspection PyArgumentList,PyArgumentList
 def _init_worker(host=(), database='uniprot'):
     """
     Creates a database client object and compressor object in the current process
@@ -153,7 +161,7 @@ def _init_worker(host=(), database='uniprot'):
     client = pymongo.MongoClient(*host)
     db = client[database]
 
-    #prepare Zstd compressor from stored info in database
+    # prepare Zstd compressor from stored info in database
     dict_data = client[database].proteins.find_one('dict_data')['dict_data']
     compressor = zstd.ZstdCompressor(dict_data=zstd.ZstdCompressionDict(dict_data),
                                      write_content_size=True)

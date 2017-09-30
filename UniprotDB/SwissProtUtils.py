@@ -1,11 +1,8 @@
 from __future__ import print_function, division
 
-import re
 import gzip
-import os
-import tempfile
-import subprocess
-import shutil
+import re
+
 
 def _get_record(handle):
     """
@@ -51,8 +48,9 @@ def parse_raw_swiss(filename, filter_fn=None):
     :return: iterator with individual SwissProt records
     """
     if not filter_fn:
-        filter_fn = lambda r: True
-    #handle = gzip.open(filename)
+        def filter_fn(*args):
+            return True
+    # handle = gzip.open(filename)
 
     with gzip.open(filename) as handle:
         while True:
@@ -61,19 +59,3 @@ def parse_raw_swiss(filename, filter_fn=None):
                 break
             if filter_fn(res):
                 yield res
-
-def placeholder():
-    #TODO make this way more elegant
-    with tempfile.TemporaryDirectory() as tdir:
-        fifo = tdir+'/fifo'
-        os.mkfifo(fifo)
-        cmd = 'pigz' if shutil.which('pigz') else 'gzip'
-        subprocess.run('{} -dc {} | cat > {} &'.format(cmd, filename, fifo), shell=True)
-        with open(fifo, 'rb') as handle:
-            while True:
-                res = _get_record(handle)
-                if not res:
-                    break
-                if filter_fn(res):
-                    yield res
-

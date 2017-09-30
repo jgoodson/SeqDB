@@ -3,9 +3,7 @@ from __future__ import print_function
 import collections
 
 
-
 class SeqDB(collections.Mapping):
-
     ids = ['_id', 'RefSeq', 'STRING', 'GeneID', 'PIR', 'Uni_name']
 
     def __init__(self, database=None):

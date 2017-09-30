@@ -2,8 +2,8 @@ try:
     from itertools import izip_longest as zip_longest
 except ImportError:
     from itertools import zip_longest
-from datetime import datetime
 from collections import defaultdict
+from datetime import datetime
 
 
 def grouper(iterable, n):
@@ -15,7 +15,7 @@ def grouper(iterable, n):
     :return: iterable of iterables
     """
     args = [iter(iterable)] * n
-    return (_ for _ in zip_longest(*args, fillvalue=None) if not _ is None)
+    return (_ for _ in zip_longest(*args, fillvalue=None) if _ is not None)
 
 
 def get_date(record):
@@ -48,4 +48,3 @@ def get_refs(record):
         ref = ref.split(':', 1)
         result[ref[0]].append(ref[1])
     return result
-
