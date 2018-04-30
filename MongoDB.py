@@ -51,7 +51,6 @@ def _create_protein(raw_record, compressor):
             dec = ref.strip('.').split(';')
             refs[dec[0]].append(dec[1].strip())
 
-
     return dict(
         _id=lines[1].split()[1].strip(';'),
         genome=genome,
@@ -76,8 +75,7 @@ class MongoDatabase(object):
         self.col = self.client[database].proteins
         if self.loop.run_until_complete(self.col.count({'_id': 'dict_data'})):
             dict_data = self.loop.run_until_complete(self.client[database].proteins.find_one('dict_data'))['dict_data']
-            self.compressor = zstd.ZstdCompressor(dict_data=zstd.ZstdCompressionDict(dict_data),
-                                                  write_content_size=True)
+            self.compressor = zstd.ZstdCompressor(dict_data=zstd.ZstdCompressionDict(dict_data))
             self.decomp = zstd.ZstdDecompressor(dict_data=zstd.ZstdCompressionDict(dict_data))
         else:
             self.initialize([], database=self.database)
@@ -132,7 +130,6 @@ class MongoDatabase(object):
 
 
     def initialize(self, seq_handles, database='uniprot', filter_fn=None, loud=False, n_seqs=None):
-
         if loud:
             print("--initializating database\n", file=sys.stderr)
         self.loop.run_until_complete(self.client[database].proteins.drop())
@@ -174,13 +171,11 @@ class MongoDatabase(object):
 
     async def add_from_handles(self, handles, filter_fn=None, total=None):
         raw_protein_records = itertools.chain(*[parse_raw_swiss(handle, filter_fn, check_date=True) for handle in handles])
-        added = 0
         additions = []
-        with tqdm(total=total) as pbar:
+        with tqdm(total=total, smoothing=0.1) as pbar:
             for record, date in raw_protein_records:
-                if date > getattr(await self.col.find_one(record.split(maxsplit=2)[1]), 'updated', datetime.min):
-                    protein = _create_protein(record, self.compressor)
-                    additions.append(self.loop.create_task(self._add_protein(protein)))
-                    added += 1
+                #if date > getattr(await self.col.find_one(record.split(maxsplit=2)[1]), 'updated', datetime.min):
+                protein = _create_protein(record, self.compressor)
+                additions.append(self.loop.create_task(self._add_protein(protein)))
                 pbar.update()
-
+        return asyncio.gather(*additions)

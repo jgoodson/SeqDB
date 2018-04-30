@@ -13,14 +13,15 @@ def _get_date(line):
     day, month, year = line.decode().split()[1].strip(',').split('-')
     return datetime(int(year), months[month], int(day))
 
-def _get_record(handle, check_date):
+def _get_record(handle, check_date, ignore={b'R', b'C'}):
     """
     Returns the next complete SwissProt entry in the input handle
     """
     lines = []
     date = None
     for line in handle:
-        lines.append(line)
+        if not line[0] in ignore:
+            lines.append(line)
         if check_date and line.startswith(b'DT'):
             date = _get_date(line)
         if line.startswith(b'//'):
