@@ -1,5 +1,6 @@
 import unittest
 import tempfile
+from SwissProtUtils import filter_proks
 
 from UniprotDB import UniprotDB
 
@@ -38,6 +39,11 @@ class CreateTest(unittest.TestCase):
         with open('TestFiles/testbig.dat.gz', 'rb') as h:
             self.db.update([h], n_seqs=900, loud=True)
         self.assertEqual(len(self.db), 900)
+
+    def test_update_filtered(self):
+        with open('TestFiles/testbig.dat.gz', 'rb') as h:
+            self.db.update([h], filter_fn=filter_proks, n_seqs=900, loud=True)
+        self.assertEqual(len(self.db), 69)
 
     def setUp(self):
         self.tempdb = tempfile.NamedTemporaryFile()
