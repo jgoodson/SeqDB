@@ -6,7 +6,7 @@ from UniprotDB import UniprotDB
 class CreateTest(unittest.TestCase):
 
     def test_direct(self):
-        self.assertIn('Q92AT0', self.db.db.col.distinct('_id'))
+        self.assertIn('Q92AT0', self.db.db.loop.run_until_complete(self.db.db.col.distinct('_id')))
 
     def test_get(self):
         self.assertEqual(self.db.get('Q92AT0').id, 'Q92AT0')
