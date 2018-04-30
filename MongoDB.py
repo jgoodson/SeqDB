@@ -140,7 +140,7 @@ class MongoDatabase(object):
             d = i.read()
             self.loop.run_until_complete(self.client[database].proteins.insert_one({'_id': 'dict_data', 'dict_data': d}))
 
-        self.loop.run_until_complete(self.add_from_handles(seq_handles, filter_fn, loud, n_seqs))
+        self.loop.run_until_complete(self.add_from_handles(seq_handles, filter_fn))
 
         self.loop.run_until_complete(self.client[database].proteins.create_index([('genome', 1)]))
         indices = ['RefSeq', 'STRING', 'GeneID', 'PIR', 'Uni_name', 'PDB', 'PDBsum', 'EMBL', 'KEGG',
@@ -152,11 +152,10 @@ class MongoDatabase(object):
             print("--initialized database\n", file=sys.stderr)
 
     def add_protein(self, raw_record, test=None, test_attr=None):
-        self.loop.run_until_complete(self._add_protein(raw_record, test=None, test_attr=None))
-
-    async def _add_protein(self, raw_record, test=None, test_attr=None):
         protein = _create_protein(raw_record, self.compressor)
+        self.loop.run_until_complete(self._add_protein(protein, test=None, test_attr=None))
 
+    async def _add_protein(self, protein, test=None, test_attr=None):
         if test:
             good = False
             if test == protein['_id']:
@@ -169,22 +168,19 @@ class MongoDatabase(object):
 
         await self.col.replace_one({'_id': protein['_id']}, protein, upsert=True)
 
-        return True
-
     def update(self, handles, filter_fn=None, loud=False, total=None):
-        self.loop.run_until_complete(self.add_from_handles(handles, filter_fn=None, loud=False, total=None))
+        self.loop.run_until_complete(self.add_from_handles(handles, filter_fn=filter_fn, total=total))
 
-    async def add_from_handles(self, handles, filter_fn=None, loud=False, total=None):
+
+    async def add_from_handles(self, handles, filter_fn=None, total=None):
         raw_protein_records = itertools.chain(*[parse_raw_swiss(handle, filter_fn, check_date=True) for handle in handles])
         added = 0
+        additions = []
         with tqdm(total=total) as pbar:
-            for record, date in (r for r in raw_protein_records):
+            for record, date in raw_protein_records:
                 if date > getattr(await self.col.find_one(record.split(maxsplit=2)[1]), 'updated', datetime.min):
-                    await self._add_protein(record)
+                    protein = _create_protein(record, self.compressor)
+                    additions.append(self.loop.create_task(self._add_protein(protein)))
                     added += 1
-                else:
-                    print(date, getattr(await self.col.find_one(record.split(maxsplit=2)[1]), 'updated', datetime.min))
                 pbar.update()
-
-
 

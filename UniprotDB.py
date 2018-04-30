@@ -59,13 +59,13 @@ class SeqDB(collections.Mapping):
             r = self.db.get_item(value)
         return r
 
-    def update(self, handles, filter_fn=None, n_seqs=None):
+    def update(self, handles, filter_fn=None, n_seqs=None, loud=False):
         """
         Update from a Uniprot release file
         :param handle: Streaming handle for a SwissProt format flatfile (gzipped)
         :return: None
         """
-        self.db.update(handles, filter_fn=filter_fn, total=n_seqs)
+        self.db.update(handles, filter_fn=filter_fn, total=n_seqs, loud=loud)
 
 
 
