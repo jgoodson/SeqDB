@@ -152,8 +152,8 @@ class MongoDatabase(object):
             good = False
             if test == protein['_id']:
                 good = True
-            for ref in [test_attr] if test_attr else self.ids:
-                if test in getattr(protein, ref, []):
+            for ref in ([test_attr] if test_attr else self.ids):
+                if test in protein.get(ref, []):
                     good = True
             if not good:
                 return False
