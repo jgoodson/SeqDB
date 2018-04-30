@@ -132,7 +132,7 @@ class MongoDatabase(object):
 
     def get_iter(self):
         for entry in self.col.find({'Uni_name': {'$exists': True}}):
-            yield SeqIO.read(IOFunc(entry['raw_record']), 'swiss')
+            yield SeqIO.read(IOFunc(self.decomp.decompress(entry['raw_record'])), 'swiss')
 
 
     def get_iterkeys(self):
@@ -191,7 +191,7 @@ class MongoDatabase(object):
                 return False
 
         if update:
-            self.col.replace_one({'_id': protein['_id']}, protein)
+            self.col.replace_one({'_id': protein['_id']}, protein, upsert=True)
         else:
             self.col.insert_one(protein)
         return True
