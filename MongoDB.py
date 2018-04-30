@@ -130,7 +130,7 @@ class MongoDatabase(object):
             print("--initializating database\n", file=sys.stderr)
         self.loop.run_until_complete(self.client[self.database].proteins.drop())
 
-        self.loop.run_until_complete(self.add_from_handles(seq_handles, filter=filter_fn, total=n_seqs))
+        self.loop.run_until_complete(self.add_from_handles(seq_handles, filter_fn=filter_fn, total=n_seqs))
 
         self.loop.run_until_complete(self.client[self.database].proteins.create_index([('genome', 1)]))
         indices = ['RefSeq', 'STRING', 'GeneID', 'PIR', 'Uni_name', 'PDB', 'EMBL', 'GO', 'Pfam']
@@ -141,8 +141,7 @@ class MongoDatabase(object):
             print("--initialized database\n", file=sys.stderr)
 
     def add_protein(self, raw_record, test=None, test_attr=None):
-        protein = _create_protein(raw_record)
-        self.loop.run_until_complete(self._add_protein(protein, test=test, test_attr=test_attr))
+        self.loop.run_until_complete(self._add_protein(raw_record, test=test, test_attr=test_attr))
 
     async def _add_protein(self, record, ppe=None, test=None, test_attr=None):
         if ppe:

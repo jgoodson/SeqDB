@@ -1,5 +1,3 @@
-from __future__ import print_function
-
 import collections
 try:
     from cStringIO import StringIO as IOFunc
@@ -75,7 +73,7 @@ def create_index(flatfiles, host=(), database='uniprot', filter=None):
     identifier, fill the database with the protein entries and returns a SeqDB object.
     """
     s = SeqDB(database, host)
-    s.db.initialize((open(f, 'rb') for f in flatfiles), database=database, filter_fn=filter)
+    s.db.initialize((open(f, 'rb') for f in flatfiles), filter_fn=filter)
     return s
 
 

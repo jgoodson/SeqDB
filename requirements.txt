@@ -2,3 +2,5 @@ biopython
 pymongo
 zstandard
 tqdm
+motor
+requests
