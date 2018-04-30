@@ -1,5 +1,3 @@
-from __future__ import print_function, division
-
 import sys
 import itertools
 try:
@@ -8,46 +6,19 @@ except ImportError:
     from itertools import zip_longest
 import os
 from datetime import datetime
-from multiprocessing import Pool
 from io import BytesIO as IOFunc
 import zstd
 from collections import defaultdict
 
 from Bio import SeqIO
 
+import asyncio
+import motor.motor_asyncio
 import pymongo
 
 from SwissProtUtils import parse_raw_swiss, filter_proks
 from tqdm import tqdm
 
-
-def _grouper(iterable, n):
-    args = [iter(iterable)] * n
-    return (_ for _ in zip_longest(*args, fillvalue=None) if not _ is None)
-
-
-def _add_proteins(sequence_records, host, database, loud=False):
-    cs = 500
-    p = Pool(16, _init_worker, (host, database))
-    _init_worker(host, database)
-
-    record_chunks = _grouper(sequence_records, cs)
-    if loud:
-        with tqdm(total=81000000) as pbar:
-            for done in p.imap_unordered(_add_chunk, record_chunks):
-                pbar.update(done)
-    else:
-        for done in p.imap_unordered(_add_chunk, record_chunks):
-            pass
-    p.close()
-
-def _init_worker(host=(), database='uniprot'):
-    global collection, compressor
-    client = pymongo.MongoClient(*host)
-    collection = client[database]
-    dict_data = client[database].proteins.find_one('dict_data')['dict_data']
-    compressor = zstd.ZstdCompressor(dict_data=zstd.ZstdCompressionDict(dict_data),
-                                     write_content_size=True)
 
 def _get_date(dateline):
     months = {
@@ -92,38 +63,27 @@ def _create_protein(raw_record, compressor):
         **refs,
     )
 
-def _add_chunk(record_chunk):
-    global client, collection, compressor
-
-    x = 0
-    proteins = [_create_protein(raw_record, compressor)
-                for raw_record in (k for k in record_chunk if k)]
-    x += len(proteins)
-    collection.proteins.insert_many(proteins)
-
-    return x
-
 
 class MongoDatabase(object):
 
     ids = ['_id', 'RefSeq', 'STRING', 'GeneID', 'PIR', 'Uni_name']
 
     def __init__(self, database, host):
+        self.loop = asyncio.get_event_loop()
         self.host = host
-        self.client = pymongo.MongoClient(*host)
+        self.client = motor.motor_asyncio.AsyncIOMotorClient(*host)
         self.database = database
-        try:
-            self.col = self.client[database].proteins
-            dict_data = self.client[database].proteins.find_one('dict_data')['dict_data']
+        self.col = self.client[database].proteins
+        if self.loop.run_until_complete(self.col.count({'_id': 'dict_data'})):
+            dict_data = self.loop.run_until_complete(self.client[database].proteins.find_one('dict_data'))['dict_data']
             self.compressor = zstd.ZstdCompressor(dict_data=zstd.ZstdCompressionDict(dict_data),
                                                   write_content_size=True)
             self.decomp = zstd.ZstdDecompressor(dict_data=zstd.ZstdCompressionDict(dict_data))
-        except:
-            pass #Do initialization?
-
+        else:
+            self.initialize([], database=self.database)
 
     def get_item(self, item):
-        t = self.col.find_one({'$or': [{i: item} for i in self.ids]})
+        t = self.loop.run_until_complete(self.col.find_one({'$or': [{i: item} for i in self.ids]}))
         if t is None:
             return None
         r = SeqIO.read(IOFunc(self.decomp.decompress(t['raw_record'])), 'swiss')
@@ -131,53 +91,70 @@ class MongoDatabase(object):
 
 
     def get_iter(self):
-        for entry in self.col.find({'Uni_name': {'$exists': True}}):
-            yield SeqIO.read(IOFunc(entry['raw_record']), 'swiss')
+        i = self.loop.run_until_complete(self._get_iter())
+        while not i.empty():
+            yield self.loop.run_until_complete(i.get())
 
+    async def _get_iter(self):
+        q = asyncio.Queue()
+        async for entry in self.col.find({'Uni_name': {'$exists': True}}):
+            await q.put(SeqIO.read(IOFunc(self.decomp.decompress(entry['raw_record'])), 'swiss'))
+        return q
 
     def get_iterkeys(self):
-        keys = (i['_id'] for i in self.col.find({'Uni_name': {'$exists': True}},
-                                                {'_id': 1}))
-        return keys
+        i = self.loop.run_until_complete(self._get_iterkeys())
+        while not i.empty():
+            yield self.loop.run_until_complete(i.get())
 
+    async def _get_iterkeys(self):
+        q = asyncio.Queue()
+        async for i in self.col.find({'Uni_name': {'$exists': True}}, {'_id': 1}):
+            await q.put(i['_id'])
+        return q
 
     def get_keys(self):
-        return self.col.distinct('_id')
+        return self.loop.run_until_complete(self.col.distinct('_id'))
 
 
     def length(self):
-        return self.col.count({'Uni_name': {'$exists': True}})
+        return self.loop.run_until_complete(self.col.count({'Uni_name': {'$exists': True}}))
 
 
     def get_by(self, attr, value):
+        return self.loop.run_until_complete(self._get_by(attr, value))
+
+    async def _get_by(self, attr, value):
+        ret = []
         res = self.col.find({attr: value}, {'raw_record': 1})
-        ret = [SeqIO.read(IOFunc(self.decomp.decompress(i['raw_record'])), 'swiss') for i in res]
+        async for i in res:
+            ret.append(SeqIO.read(IOFunc(self.decomp.decompress(i['raw_record'])), 'swiss'))
         return ret
 
 
-    def initialize(self, seq_handles, database='uniprot', filter_fn=None, loud=False):
+    def initialize(self, seq_handles, database='uniprot', filter_fn=None, loud=False, n_seqs=None):
 
         if loud:
             print("--initializating database\n", file=sys.stderr)
-        self.client[database].proteins.drop()
+        self.loop.run_until_complete(self.client[database].proteins.drop())
         with open(os.path.dirname(__file__)+"/cc16.zstd_dict", 'rb') as i:
             d = i.read()
-            self.client[database].proteins.insert_one({'_id': 'dict_data', 'dict_data': d})
+            self.loop.run_until_complete(self.client[database].proteins.insert_one({'_id': 'dict_data', 'dict_data': d}))
 
-        raw_protein_recordss = itertools.chain(*[parse_raw_swiss(handle, filter_fn) for handle in seq_handles])
+        self.loop.run_until_complete(self.add_from_handles(seq_handles, filter_fn, loud, n_seqs))
 
-        _add_proteins(raw_protein_recordss, self.host, database, loud=loud)
-
-        self.client[database].proteins.create_index([('genome', 1)])
+        self.loop.run_until_complete(self.client[database].proteins.create_index([('genome', 1)]))
         indices = ['RefSeq', 'STRING', 'GeneID', 'PIR', 'Uni_name', 'PDB', 'PDBsum', 'EMBL', 'KEGG',
                    'GO', 'InterPro', 'Pfam', 'TIGRFAMs', 'PROSITE']
         for field in indices:
-            self.client[database].proteins.create_index(keys=[(field, pymongo.ASCENDING)],
-                                                   partialFilterExpression={field: {'$exists': True}})
+            self.loop.run_until_complete(self.client[database].proteins.create_index(keys=[(field, pymongo.ASCENDING)],
+                                                   partialFilterExpression={field: {'$exists': True}}))
         if loud:
             print("--initialized database\n", file=sys.stderr)
 
-    def add_protein(self, raw_record, update=False, test=None, test_attr=None):
+    def add_protein(self, raw_record, test=None, test_attr=None):
+        self.loop.run_until_complete(self._add_protein(raw_record, test=None, test_attr=None))
+
+    async def _add_protein(self, raw_record, test=None, test_attr=None):
         protein = _create_protein(raw_record, self.compressor)
 
         if test:
@@ -190,19 +167,24 @@ class MongoDatabase(object):
             if not good:
                 return False
 
-        if update:
-            self.col.replace_one({'_id': protein['_id']}, protein)
-        else:
-            self.col.insert_one(protein)
+        await self.col.replace_one({'_id': protein['_id']}, protein, upsert=True)
+
         return True
 
     def update(self, handles, filter_fn=None, loud=False, total=None):
+        self.loop.run_until_complete(self.add_from_handles(handles, filter_fn=None, loud=False, total=None))
+
+    async def add_from_handles(self, handles, filter_fn=None, loud=False, total=None):
         raw_protein_records = itertools.chain(*[parse_raw_swiss(handle, filter_fn, check_date=True) for handle in handles])
         added = 0
         with tqdm(total=total) as pbar:
             for record, date in (r for r in raw_protein_records):
-                if date > getattr(self.col.find_one(record.split(maxsplit=2)[1]), 'updated', datetime.min):
-                    self.add_protein(record, update=True)
+                if date > getattr(await self.col.find_one(record.split(maxsplit=2)[1]), 'updated', datetime.min):
+                    await self._add_protein(record)
                     added += 1
+                else:
+                    print(date, getattr(await self.col.find_one(record.split(maxsplit=2)[1]), 'updated', datetime.min))
                 pbar.update()
+
+
 

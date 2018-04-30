@@ -67,6 +67,8 @@ class SeqDB(collections.Mapping):
         """
         self.db.update(handles, filter_fn=filter_fn, total=n_seqs)
 
+
+
 def create_index(flatfiles, host=(), database='uniprot', filter=None):
     """
     Given a list of SwissProt flatfile filenames in bgz format and a SQLAlchemy database
