@@ -38,9 +38,9 @@ class CreateTest(unittest.TestCase):
     def test_update(self):
         with open('TestFiles/testbig.dat.gz', 'rb') as h:
             self.db.update([h])
-        self.assertEqual(len(self.db), 900)
         if len(self.db) != 900:
             print(self.db.keys())
+        self.assertEqual(len(self.db), 900)
 
     def test_update_filtered(self):
         with open('TestFiles/testbig.dat.gz', 'rb') as h:
