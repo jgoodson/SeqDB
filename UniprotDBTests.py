@@ -37,12 +37,14 @@ class CreateTest(unittest.TestCase):
 
     def test_update(self):
         with open('TestFiles/testbig.dat.gz', 'rb') as h:
-            self.db.update([h], n_seqs=900, loud=True)
+            self.db.update([h])
         self.assertEqual(len(self.db), 900)
+        if len(self.db) != 900:
+            print(self.db.keys())
 
     def test_update_filtered(self):
         with open('TestFiles/testbig.dat.gz', 'rb') as h:
-            self.db.update([h], filter_fn=filter_proks, n_seqs=900, loud=True)
+            self.db.update([h], filter_fn=filter_proks)
         self.assertEqual(len(self.db), 69)
 
     def setUp(self):
