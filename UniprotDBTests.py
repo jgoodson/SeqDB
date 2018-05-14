@@ -1,8 +1,9 @@
-import unittest
 import tempfile
-from SwissProtUtils import filter_proks
+import unittest
 
 from UniprotDB import UniprotDB
+from UniprotDB.SwissProtUtils import filter_proks
+
 
 class CreateTest(unittest.TestCase):
 
@@ -29,7 +30,6 @@ class CreateTest(unittest.TestCase):
         self.assertEqual(len(self.db), 1)
 
     def test_getby(self):
-        print(self.db.get_by('_id', 'Q92AT0'))
         self.assertEqual(self.db.get_by('_id', 'Q92AT0')[0].id, "Q92AT0")
 
     def test_fetch(self):
@@ -53,3 +53,5 @@ class CreateTest(unittest.TestCase):
     def tearDown(self):
         self.tempdb.close()
 
+if __name__ == '__main__':
+    unittest.main()

@@ -38,7 +38,7 @@ def parse_raw_swiss(handle, filter_fn=None, check_date=False):
     """
     if not filter_fn:
         filter_fn = lambda r: True
-    stream = gzip.open(handle)
-    for res in _get_record(stream):
-        if filter_fn(res):
-            yield res
+    with gzip.open(handle) as stream:
+        for res in _get_record(stream):
+            if filter_fn(res):
+                yield res

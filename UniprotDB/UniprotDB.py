@@ -4,10 +4,8 @@ try:
 except ImportError:
     from io import BytesIO as IOFunc
 
-from MongoDB import MongoDatabase
+from UniprotDB.MongoDB import MongoDatabase
 import requests
-
-from SwissProtUtils import filter_proks
 
 query_req = 'https://www.uniprot.org/uniprot/?query={}&format=list'
 fetch_req = 'https://www.uniprot.org/uniprot/{}.txt'
@@ -73,7 +71,10 @@ def create_index(flatfiles, host=(), database='uniprot', filter=None):
     identifier, fill the database with the protein entries and returns a SeqDB object.
     """
     s = SeqDB(database, host)
-    s.db.initialize((open(f, 'rb') for f in flatfiles), filter_fn=filter)
+    handles = [open(f, 'rb') for f in flatfiles]
+    s.db.initialize(handles, filter_fn=filter)
+    for f in handles:
+        f.close()
     return s
 
 

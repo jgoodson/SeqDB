@@ -1,5 +1,6 @@
-import sys
 import itertools
+import sys
+
 try:
     from itertools import izip_longest as zip_longest
 except ImportError:
@@ -16,10 +17,10 @@ import asyncio
 import motor.motor_asyncio
 import pymongo
 
-from SwissProtUtils import parse_raw_swiss, filter_proks
+from UniprotDB.SwissProtUtils import parse_raw_swiss
 from tqdm import tqdm
 
-compressor, decomp = zstd.ZstdCompressor(), zstd.ZstdDecompressor()
+compressor, decomp = zstd.ZstdCompressor(write_content_size=True), zstd.ZstdDecompressor()
 
 def _get_date(dateline):
     months = {
@@ -164,13 +165,13 @@ class MongoDatabase(object):
         print(self.loop.run_until_complete(self.add_from_handles(handles, filter_fn=filter_fn, total=total)))
 
 
-    async def add_from_handles(self, handles, filter_fn=None, total=None):
+    async def add_from_handles(self, handles, filter_fn=None, total=None, loud=False):
         raw_protein_records = itertools.chain(*[parse_raw_swiss(handle, filter_fn) for handle in handles])
         additions = []
         tasks = []
         n = 100
         ppe = concurrent.futures.ProcessPoolExecutor(max_workers=4)
-        with tqdm(total=total, smoothing=0.1) as pbar:
+        with tqdm(total=total, smoothing=0.1, disable=(not loud)) as pbar:
             for record in raw_protein_records:
                 if tasks:
                     done, pending = await asyncio.wait(tasks)
