@@ -181,5 +181,5 @@ class MongoDatabase(object):
                             await pending[i]
                 tasks.append(asyncio.ensure_future(self._add_protein(record, ppe)))
                 pbar.update()
-
+        await self.col.count({'Uni_name': {'$exists': True}})
 
