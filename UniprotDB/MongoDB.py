@@ -92,7 +92,7 @@ class MongoDatabase(object):
 
     async def _get_iter(self):
         q = asyncio.Queue()
-        async for entry in self.col.find({'Uni_name': {'$exists': True}}):
+        async for entry in self.col.find({'_id': {'$exists': True}}):
             await q.put(SeqIO.read(IOFunc(decomp.decompress(entry['raw_record'])), 'swiss'))
         return q
 
@@ -103,7 +103,7 @@ class MongoDatabase(object):
 
     async def _get_iterkeys(self):
         q = asyncio.Queue()
-        async for i in self.col.find({'Uni_name': {'$exists': True}}, {'_id': 1}):
+        async for i in self.col.find({'_id': {'$exists': True}}, {'_id': 1}):
             await q.put(i['_id'])
         return q
 
@@ -112,7 +112,7 @@ class MongoDatabase(object):
 
 
     def length(self):
-        return self.loop.run_until_complete(self.col.count({'Uni_name': {'$exists': True}}))
+        return self.loop.run_until_complete(self.col.count({'_id': {'$exists': True}}))
 
 
     def get_by(self, attr, value):

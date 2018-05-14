@@ -1,5 +1,6 @@
 import tempfile
 import unittest
+import gzip
 
 from UniprotDB import UniprotDB
 from UniprotDB.SwissProtUtils import filter_proks
@@ -38,21 +39,22 @@ class CreateTest(unittest.TestCase):
     def test_update(self):
         with open('TestFiles/testbig.dat.gz', 'rb') as h:
             self.db.update([h])
-        self.assertEqual(len(self.db), 900)
-
+        with gzip.open('TestFiles/testbig.dat.gz', 'rb') as h:
+            ids = set(l.split()[1].decode() for l in h if l.startswith(b'ID'))
+        inserted_ids = set(e.name for e in self.db)
+        self.assertEqual(inserted_ids, ids)
 
     def test_update_filtered(self):
         with open('TestFiles/testbig.dat.gz', 'rb') as h:
             self.db.update([h], filter_fn=filter_proks)
-        self.assertEqual(len(self.db), 69)
+        self.assertEqual(len(set(e.name for e in self.db)), 69)
 
     def setUp(self):
-        self.tempdb = tempfile.NamedTemporaryFile()
-        self.database = 'test_uni'
+        self.database = 'test_uni2'
         self.db = UniprotDB.create_index(['TestFiles/test.dat.bgz'], database=self.database)
 
     def tearDown(self):
-        self.tempdb.close()
+        pass
 
 if __name__ == '__main__':
     unittest.main()
