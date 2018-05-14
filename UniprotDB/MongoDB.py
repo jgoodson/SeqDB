@@ -162,12 +162,11 @@ class MongoDatabase(object):
 
 
     def update(self, handles, filter_fn=None, loud=False, total=None):
-        print(self.loop.run_until_complete(self.add_from_handles(handles, filter_fn=filter_fn, total=total)))
+        print(self.loop.run_until_complete(self.add_from_handles(handles, filter_fn=filter_fn, total=total, loud=loud)))
 
 
     async def add_from_handles(self, handles, filter_fn=None, total=None, loud=False):
         raw_protein_records = itertools.chain(*[parse_raw_swiss(handle, filter_fn) for handle in handles])
-        additions = []
         tasks = []
         n = 100
         ppe = concurrent.futures.ProcessPoolExecutor(max_workers=4)
@@ -182,5 +181,5 @@ class MongoDatabase(object):
                             await pending[i]
                 tasks.append(asyncio.ensure_future(self._add_protein(record, ppe)))
                 pbar.update()
-        return await asyncio.gather(*additions)
+
 
