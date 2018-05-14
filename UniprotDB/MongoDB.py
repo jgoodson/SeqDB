@@ -162,7 +162,7 @@ class MongoDatabase(object):
 
 
     def update(self, handles, filter_fn=None, loud=False, total=None):
-        print(self.loop.run_until_complete(self.add_from_handles(handles, filter_fn=filter_fn, total=total, loud=loud)))
+        self.loop.run_until_complete(self.add_from_handles(handles, filter_fn=filter_fn, total=total, loud=loud))
 
 
     async def add_from_handles(self, handles, filter_fn=None, total=None, loud=False):
@@ -177,9 +177,9 @@ class MongoDatabase(object):
                     for d in done:
                         tasks.remove(d)
                     if len(pending)>n:
-                        for i in range(pending-n):
+                        for i in range(len(pending)-n):
                             await pending[i]
                 tasks.append(asyncio.ensure_future(self._add_protein(record, ppe)))
                 pbar.update()
-        await self.col.count({'Uni_name': {'$exists': True}})
+
 
