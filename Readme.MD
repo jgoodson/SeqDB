@@ -1,0 +1,1 @@
+Project containing scripts to build and access a local SQL database containing all of UniprotKB via a Python interface.
