@@ -18,6 +18,9 @@ class CreateTest(unittest.TestCase):
         self.assertEqual(self.db.get('P0A784').id, 'P0A784')
         self.assertEqual(self.db.get('ORN_HUMAN').id, 'Q9Y3B8')
 
+    def test_getby_missing(self):
+        self.assertEqual(self.db.get_by('_id', 'P0A784').id, 'P0A784')
+
     def test_iter(self):
         self.assertIsInstance(next(self.db.iterkeys()), str)
 

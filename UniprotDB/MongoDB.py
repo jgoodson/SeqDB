@@ -142,7 +142,7 @@ class MongoDatabase(object):
             print("--initialized database\n", file=sys.stderr)
 
     def add_protein(self, raw_record, test=None, test_attr=None):
-        self.loop.run_until_complete(self._add_protein(raw_record, test=test, test_attr=test_attr))
+        return self.loop.run_until_complete(self._add_protein(raw_record, test=test, test_attr=test_attr))
 
     async def _add_protein(self, record, ppe=None, test=None, test_attr=None):
         if ppe:
@@ -153,13 +153,14 @@ class MongoDatabase(object):
             good = False
             if test == protein['_id']:
                 good = True
-            for ref in ([test_attr] if test_attr else self.ids):
-                if test in protein.get(ref, []):
-                    good = True
+            if not good:
+                for ref in ([test_attr] if test_attr else self.ids):
+                    if test in protein.get(ref, []):
+                        good = True
             if not good:
                 return False
         await self.col.replace_one({'_id': protein['_id']}, protein, upsert=True)
-
+        return True
 
     def update(self, handles, filter_fn=None, loud=False, total=None):
         self.loop.run_until_complete(self.add_from_handles(handles, filter_fn=filter_fn, total=total, loud=loud))
