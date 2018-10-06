@@ -14,6 +14,7 @@ uniparc_s_req = 'http://www.uniprot.org/uniparc/?query={}&format=list'
 unipart_f_req = 'http://www.uniprot.org/uniparc/{}.xml'
 
 def search_uniprot(value, retries=3):
+    #if value=
     for x in range(retries):
         try:
             possible_ids = requests.get(query_req.format(value)).content.split()
