@@ -112,8 +112,8 @@ class MongoDatabase(object):
 
 
     def length(self):
-        return self.loop.run_until_complete(self.col.count({'_id': {'$exists': True}}))
-
+        #return self.loop.run_until_complete(self.col.count({'_id': {'$exists': True}}))
+        return self.loop.run_until_complete(self.col.count_documents({'_id': {'$exists': True}}))
 
     def get_by(self, attr, value):
         return self.loop.run_until_complete(self._get_by(attr, value))
