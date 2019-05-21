@@ -8,6 +8,11 @@ from UniprotDB.MongoDB import MongoDatabase
 import requests
 from requests.exceptions import SSLError
 
+sprot_url = 'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.dat.gz'
+trembl_bac_url = 'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/taxonomic_divisions/uniprot_trembl_bacteria.dat.gz'
+trembl_arc_url = 'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/taxonomic_divisions/uniprot_trembl_archaea.dat.gz'
+
+
 query_req = 'https://www.uniprot.org/uniprot/?query={}&format=list'
 fetch_req = 'https://www.uniprot.org/uniprot/{}.txt'
 uniparc_s_req = 'http://www.uniprot.org/uniparc/?query={}&format=list'
@@ -79,12 +84,28 @@ class SeqDB(collections.Mapping):
     def update(self, handles, filter_fn=None, n_seqs=None, loud=False):
         """
         Update from a Uniprot release file
+
+
         :param handle: Streaming handle for a SwissProt format flatfile (gzipped)
         :return: None
         """
         self.db.update(handles, filter_fn=filter_fn, total=n_seqs, loud=loud)
 
+    def update_swissprot(self, filter_fn=None):
+        import urllib.request
 
+        sprot = urllib.request.urlopen(sprot_url)
+        self.update([sprot], filter_fn=filter_fn, loud=True)
+        sprot.close()
+
+    def update_trembl_prok(self):
+        import urllib.request
+        arch = urllib.request.urlopen(trembl_arc_url)
+        self.update([arch], loud=True)
+        arch.close()
+        bact = urllib.request.urlopen(trembl_bac_url)
+        self.update([arch], loud=True)
+        bact.close()
 
 def create_index(flatfiles, host=(), database='uniprot', filter=None):
     """
