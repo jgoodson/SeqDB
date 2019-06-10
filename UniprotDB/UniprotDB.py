@@ -9,6 +9,7 @@ import requests
 from requests.exceptions import SSLError
 
 sprot_url = 'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.dat.gz'
+trembl_url = 'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_trembl.dat.gz'
 trembl_bac_url = 'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/taxonomic_divisions/uniprot_trembl_bacteria.dat.gz'
 trembl_arc_url = 'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/taxonomic_divisions/uniprot_trembl_archaea.dat.gz'
 
@@ -104,8 +105,14 @@ class SeqDB(collections.Mapping):
         self.update([arch], loud=True)
         arch.close()
         bact = urllib.request.urlopen(trembl_bac_url)
-        self.update([arch], loud=True)
+        self.update([bact], loud=True)
         bact.close()
+
+    def update_trembl(self):
+        import urllib.request
+        trembl = urllib.request.urlopen(trembl_url)
+        self.update([trembl], loud=True)
+        trembl.close()
 
 def create_index(flatfiles, host=(), database='uniprot', filter=None):
     """
