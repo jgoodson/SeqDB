@@ -54,7 +54,7 @@ class CreateTest(unittest.TestCase):
 
     def setUp(self):
         self.database = 'test_uni2'
-        self.db = UniprotDB.create_index(['TestFiles/test.dat.bgz'], database=self.database)
+        self.db = UniprotDB.create_index(['TestFiles/test.dat.bgz'], database=self.database, on_demand=True)
 
     def tearDown(self):
         pass

@@ -115,12 +115,12 @@ class SeqDB(collections.Mapping):
         self.update([trembl], loud=True)
         trembl.close()
 
-def create_index(flatfiles, host=(), database='uniprot', filter=None):
+def create_index(flatfiles, host=(), database='uniprot', filter=None, **kwargs):
     """
     Given a list of SwissProt flatfile filenames in bgz format and a SQLAlchemy database
     identifier, fill the database with the protein entries and returns a SeqDB object.
     """
-    s = SeqDB(database, host)
+    s = SeqDB(database, host, **kwargs)
     handles = [open(f, 'rb') for f in flatfiles]
     s.db.initialize(handles, filter_fn=filter)
     for f in handles:
