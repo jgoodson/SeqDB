@@ -6,7 +6,7 @@ except ImportError:
 
 from UniprotDB.MongoDB import MongoDatabase
 import requests
-from requests.exceptions import SSLError
+from requests.exceptions import SSLError, ConnectionError
 
 sprot_url = 'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.dat.gz'
 trembl_url = 'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_trembl.dat.gz'
@@ -20,12 +20,12 @@ uniparc_s_req = 'http://www.uniprot.org/uniparc/?query={}&format=list'
 unipart_f_req = 'http://www.uniprot.org/uniparc/{}.xml'
 
 def search_uniprot(value, retries=3):
-    #if value=
+    possible_ids = []
     for x in range(retries):
         try:
             possible_ids = requests.get(query_req.format(value)).content.split()
             break
-        except SSLError:
+        except (SSLError, ConnectionError) as e:
             pass
 
     for id in possible_ids[:5]:
@@ -33,7 +33,7 @@ def search_uniprot(value, retries=3):
             try:
                 raw_record = requests.get(fetch_req.format(id.decode())).content
                 break
-            except SSLError:
+            except (SSLError, ConnectionError) as e:
                 pass
         if raw_record:
             yield raw_record
@@ -42,16 +42,17 @@ def search_uniprot(value, retries=3):
 class SeqDB(collections.Mapping):
 
 
-    def __init__(self, database='uniprot', host=(), dbtype=MongoDatabase):
+    def __init__(self, database='uniprot', host=(), dbtype=MongoDatabase, on_demand=False):
         self.db = dbtype(database, host)
         self.database = database
+        self.on_demand = on_demand
 
     def initialize(self, flatfiles, filter):
         self.db.initialize(flatfiles, self.database, filter)
 
     def __getitem__(self, item):
         r = self.db.get_item(item)
-        if not r:
+        if not r and self.on_demand:
             raw_records = search_uniprot(item)
             for raw_record in raw_records:
                 if self.db.add_protein(raw_record, test=item):
