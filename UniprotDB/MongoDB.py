@@ -61,7 +61,7 @@ def _create_protein(raw_record):
                 strains.append(cur_strain)
                 cur_strain = ''
             else:
-                cur_strain.append(l.split('=')[1].strip('\n'))
+                cur_strain += l.split('=')[1].strip('\n')
 
     return dict(
         _id=lines[1].split()[1].strip(';'),
