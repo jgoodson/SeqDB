@@ -36,6 +36,7 @@ def _create_protein(raw_record):
     lines = raw_record.decode().split('\n')
     desc_lines = []
     refs = defaultdict(list)
+    genome = []
     for l in lines:
         s = l[:2]
         if s == 'CC' or s == '  ':
@@ -45,7 +46,7 @@ def _create_protein(raw_record):
         elif s == 'DE':
             desc_lines.append(l.split(maxsplit=1)[1])
         elif s == 'OS':
-            genome = l.split(maxsplit=1)[1].strip('. ')
+            genome.append(l.split(maxsplit=1)[1].strip('. '))
         elif s == 'OX':
             taxid = l.split('=')[1].strip(';')
         elif s == 'DR':
@@ -55,7 +56,7 @@ def _create_protein(raw_record):
 
     return dict(
         _id=lines[1].split()[1].strip(';'),
-        genome=genome,
+        genome=''.join(genome),
         taxid=taxid,
         description=' '.join(desc_lines),
         updated=_get_date(dateline),
