@@ -36,6 +36,9 @@ def _create_protein(raw_record):
     lines = raw_record.decode().split('\n')
     desc_lines = []
     refs = defaultdict(list)
+    genome = []
+    strains = []
+    cur_strain = ''
     for l in lines:
         s = l[:2]
         if s == 'CC' or s == '  ':
@@ -45,21 +48,29 @@ def _create_protein(raw_record):
         elif s == 'DE':
             desc_lines.append(l.split(maxsplit=1)[1])
         elif s == 'OS':
-            genome = l.split(maxsplit=1)[1].strip('. ')
+            genome.append(l.split(maxsplit=1)[1].strip('. '))
         elif s == 'OX':
             taxid = l.split('=')[1].strip(';')
         elif s == 'DR':
             ref = l.split(maxsplit=1)[1]
             dec = ref.strip('.').split(';')
             refs[dec[0]].append(dec[1].strip())
+        elif s == 'RC':
+            if l.strip('\n')[-1]==';':
+                cur_strain += l.split('=')[1].strip(';\n')
+                strains.append(cur_strain)
+                cur_strain = ''
+            else:
+                cur_strain.append(l.split('=')[1].strip('\n'))
 
     return dict(
         _id=lines[1].split()[1].strip(';'),
-        genome=genome,
+        genome=''.join(genome),
         taxid=taxid,
         description=' '.join(desc_lines),
         updated=_get_date(dateline),
         raw_record=compressor.compress(raw_record),
+        strains=strains,
         Uni_name=[lines[0].split()[1]],
         **refs,
     )
@@ -112,7 +123,6 @@ class MongoDatabase(object):
 
 
     def length(self):
-        #return self.loop.run_until_complete(self.col.count({'_id': {'$exists': True}}))
         return self.loop.run_until_complete(self.col.count_documents({'_id': {'$exists': True}}))
 
     def get_by(self, attr, value):
