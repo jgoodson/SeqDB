@@ -37,8 +37,6 @@ def _create_protein(raw_record):
     desc_lines = []
     refs = defaultdict(list)
     genome = []
-    strains = []
-    cur_strain = ''
     for l in lines:
         s = l[:2]
         if s == 'CC' or s == '  ':
@@ -55,13 +53,6 @@ def _create_protein(raw_record):
             ref = l.split(maxsplit=1)[1]
             dec = ref.strip('.').split(';')
             refs[dec[0]].append(dec[1].strip())
-        elif s == 'RC':
-            if l.strip('\n')[-1]==';':
-                cur_strain += l.split('=')[1].strip(';\n')
-                strains.append(cur_strain)
-                cur_strain = ''
-            else:
-                cur_strain += l.split('=')[1].strip('\n')
 
     return dict(
         _id=lines[1].split()[1].strip(';'),
@@ -70,7 +61,6 @@ def _create_protein(raw_record):
         description=' '.join(desc_lines),
         updated=_get_date(dateline),
         raw_record=compressor.compress(raw_record),
-        strains=strains,
         Uni_name=[lines[0].split()[1]],
         **refs,
     )
@@ -144,7 +134,7 @@ class MongoDatabase(object):
         self.loop.run_until_complete(self.add_from_handles(seq_handles, filter_fn=filter_fn, total=n_seqs))
 
         self.loop.run_until_complete(self.client[self.database].proteins.create_index([('genome', 1)]))
-        indices = ['RefSeq', 'STRING', 'GeneID', 'PIR', 'Uni_name', 'PDB', 'EMBL', 'GO', 'Pfam']
+        indices = ['RefSeq', 'STRING', 'GeneID', 'PIR', 'Uni_name', 'PDB', 'EMBL', 'GO', 'Pfam', 'Proteomes']
         for field in indices:
             self.loop.run_until_complete(self.client[self.database].proteins.create_index(keys=[(field, pymongo.ASCENDING)],
                                                    partialFilterExpression={field: {'$exists': True}}))
