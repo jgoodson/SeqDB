@@ -173,7 +173,7 @@ class MongoDatabase(object):
         ppe = concurrent.futures.ProcessPoolExecutor(max_workers=4)
         with tqdm(total=total, smoothing=0.1, disable=(not loud)) as pbar:
             for record in raw_protein_records:
-                if tasks:
+                if len(tasks)>n:
                     done, pending = await asyncio.wait(tasks)
                     for d in done:
                         tasks.remove(d)
