@@ -6,7 +6,7 @@ try:
 except ImportError:
     from itertools import zip_longest
 from datetime import datetime
-from io import BytesIO as IOFunc
+from io import StringIO as IOFunc
 import zstd
 from collections import defaultdict
 
@@ -82,7 +82,7 @@ class MongoDatabase(object):
         t = self.loop.run_until_complete(self.col.find_one({'$or': [{i: item} for i in self.ids]}))
         if t is None:
             return None
-        r = SeqIO.read(IOFunc(decomp.decompress(t['raw_record'])), 'swiss')
+        r = SeqIO.read(IOFunc(decomp.decompress(t['raw_record']).decode()), 'swiss')
         return r
 
 
@@ -94,7 +94,7 @@ class MongoDatabase(object):
     async def _get_iter(self):
         q = asyncio.Queue()
         async for entry in self.col.find({'_id': {'$exists': True}}):
-            await q.put(SeqIO.read(IOFunc(decomp.decompress(entry['raw_record'])), 'swiss'))
+            await q.put(SeqIO.read(IOFunc(decomp.decompress(entry['raw_record']).decode()), 'swiss'))
         return q
 
     def get_iterkeys(self):
@@ -122,7 +122,7 @@ class MongoDatabase(object):
         ret = []
         res = self.col.find({attr: value}, {'raw_record': 1})
         async for i in res:
-            ret.append(SeqIO.read(IOFunc(decomp.decompress(i['raw_record'])), 'swiss'))
+            ret.append(SeqIO.read(IOFunc(decomp.decompress(i['raw_record']).decode()), 'swiss'))
         return ret
 
 
