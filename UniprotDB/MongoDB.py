@@ -126,12 +126,12 @@ class MongoDatabase(object):
         return ret
 
 
-    def initialize(self, seq_handles, filter_fn=None, loud=False, n_seqs=None):
+    def initialize(self, seq_handles, filter_fn=None, loud=False, n_seqs=None, processes=1):
         if loud:
             print("--initializating database\n", file=sys.stderr)
         self.loop.run_until_complete(self.client[self.database].proteins.drop())
 
-        self.loop.run_until_complete(self.add_from_handles(seq_handles, filter_fn=filter_fn, total=n_seqs))
+        self.loop.run_until_complete(self.add_from_handles(seq_handles, filter_fn=filter_fn, total=n_seqs, processes=processes))
 
         self.loop.run_until_complete(self.client[self.database].proteins.create_index([('genome', 1)]))
         indices = ['RefSeq', 'STRING', 'GeneID', 'PIR', 'Uni_name', 'PDB', 'EMBL', 'GO', 'Pfam', 'Proteomes']
@@ -162,15 +162,15 @@ class MongoDatabase(object):
         await self.col.replace_one({'_id': protein['_id']}, protein, upsert=True)
         return True
 
-    def update(self, handles, filter_fn=None, loud=False, total=None):
-        self.loop.run_until_complete(self.add_from_handles(handles, filter_fn=filter_fn, total=total, loud=loud))
+    def update(self, handles, filter_fn=None, loud=False, total=None, processes=1):
+        self.loop.run_until_complete(self.add_from_handles(handles, filter_fn=filter_fn, total=total, loud=loud, processes=processes))
 
 
-    async def add_from_handles(self, handles, filter_fn=None, total=None, loud=False):
+    async def add_from_handles(self, handles, filter_fn=None, total=None, loud=False, processes=4):
         raw_protein_records = itertools.chain(*[parse_raw_swiss(handle, filter_fn) for handle in handles])
         tasks = []
         n = 100
-        ppe = concurrent.futures.ProcessPoolExecutor(max_workers=4)
+        ppe = concurrent.futures.ProcessPoolExecutor(max_workers=processes)
         with tqdm(total=total, smoothing=0.1, disable=(not loud)) as pbar:
             for record in raw_protein_records:
                 if len(tasks)>n:

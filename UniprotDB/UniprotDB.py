@@ -83,7 +83,7 @@ class SeqDB(collections.Mapping):
                     break
         return r
 
-    def update(self, handles, filter_fn=None, n_seqs=None, loud=False):
+    def update(self, handles, filter_fn=None, n_seqs=None, loud=False, processes=1):
         """
         Update from a Uniprot release file
 
@@ -91,28 +91,28 @@ class SeqDB(collections.Mapping):
         :param handle: Streaming handle for a SwissProt format flatfile (gzipped)
         :return: None
         """
-        self.db.update(handles, filter_fn=filter_fn, total=n_seqs, loud=loud)
+        self.db.update(handles, filter_fn=filter_fn, total=n_seqs, loud=loud, processes=processes)
 
-    def update_swissprot(self, filter_fn=None):
+    def update_swissprot(self, filter_fn=None, processes=1):
         import urllib.request
 
         sprot = urllib.request.urlopen(sprot_url)
-        self.update([sprot], filter_fn=filter_fn, loud=True)
+        self.update([sprot], filter_fn=filter_fn, loud=True, processes=processes)
         sprot.close()
 
-    def update_trembl_prok(self):
+    def update_trembl_prok(self, processes=1):
         import urllib.request
         arch = urllib.request.urlopen(trembl_arc_url)
-        self.update([arch], loud=True)
+        self.update([arch], loud=True, processes=processes)
         arch.close()
         bact = urllib.request.urlopen(trembl_bac_url)
-        self.update([bact], loud=True)
+        self.update([bact], loud=True, processes=processes)
         bact.close()
 
-    def update_trembl(self):
+    def update_trembl(self, processes=1):
         import urllib.request
         trembl = urllib.request.urlopen(trembl_url)
-        self.update([trembl], loud=True)
+        self.update([trembl], loud=True, processes=processes)
         trembl.close()
 
 def create_index(flatfiles, host=(), database='uniprot', filter=None, **kwargs):
