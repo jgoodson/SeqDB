@@ -5,10 +5,9 @@ try:
     from itertools import izip_longest as zip_longest
 except ImportError:
     from itertools import zip_longest
-from datetime import datetime
+
 from io import StringIO as IOFunc
 import zstd
-from collections import defaultdict
 
 from Bio import SeqIO
 
@@ -16,55 +15,10 @@ import concurrent.futures
 import asyncio
 import motor.motor_asyncio
 import pymongo
-
-from UniprotDB.SwissProtUtils import parse_raw_swiss
 from tqdm import tqdm
 
-compressor, decomp = zstd.ZstdCompressor(write_content_size=True), zstd.ZstdDecompressor()
-
-def _get_date(dateline):
-    months = {
-        'JAN': 1, 'FEB': 2, 'MAR': 3,
-        'APR': 4, 'MAY': 5, 'JUN': 6,
-        'JUL': 7, 'AUG': 8, 'SEP': 9,
-        'OCT': 10, 'NOV': 11, 'DEC': 12,
-    }
-    day, month, year = dateline.split()[1].strip(',').split('-')
-    return datetime(int(year), months[month], int(day))
-
-def _create_protein(raw_record):
-    lines = raw_record.decode().split('\n')
-    desc_lines = []
-    refs = defaultdict(list)
-    genome = []
-    for l in lines:
-        s = l[:2]
-        if s == 'CC' or s == '  ':
-            continue
-        elif s == 'DT':
-            dateline = l
-        elif s == 'DE':
-            desc_lines.append(l.split(maxsplit=1)[1])
-        elif s == 'OS':
-            genome.append(l.split(maxsplit=1)[1].strip('. '))
-        elif s == 'OX':
-            taxid = l.split('=')[1].strip(';')
-        elif s == 'DR':
-            ref = l.split(maxsplit=1)[1]
-            dec = ref.strip('.').split(';')
-            refs[dec[0]].append(dec[1].strip())
-
-    return dict(
-        _id=lines[1].split()[1].strip(';'),
-        genome=''.join(genome),
-        taxid=taxid,
-        description=' '.join(desc_lines),
-        updated=_get_date(dateline),
-        raw_record=compressor.compress(raw_record),
-        Uni_name=[lines[0].split()[1]],
-        **refs,
-    )
-
+from UniprotDB.SwissProtUtils import parse_raw_swiss
+from UniprotDB._utils import _extract_seqrecord, _create_protein, _get_date
 
 class MongoDatabase(object):
 
@@ -82,7 +36,7 @@ class MongoDatabase(object):
         t = self.loop.run_until_complete(self.col.find_one({'$or': [{i: item} for i in self.ids]}))
         if t is None:
             return None
-        r = SeqIO.read(IOFunc(decomp.decompress(t['raw_record']).decode()), 'swiss')
+        r = _extract_seqrecord(t['raw_record'])
         return r
 
 
@@ -92,10 +46,8 @@ class MongoDatabase(object):
             yield self.loop.run_until_complete(i.get())
 
     async def _get_iter(self):
-        q = asyncio.Queue()
         async for entry in self.col.find({'_id': {'$exists': True}}):
-            await q.put(SeqIO.read(IOFunc(decomp.decompress(entry['raw_record']).decode()), 'swiss'))
-        return q
+            yield _extract_seqrecord(entry['raw_record'])
 
     def get_iterkeys(self):
         i = self.loop.run_until_complete(self._get_iterkeys())
@@ -122,7 +74,7 @@ class MongoDatabase(object):
         ret = []
         res = self.col.find({attr: value}, {'raw_record': 1})
         async for i in res:
-            ret.append(SeqIO.read(IOFunc(decomp.decompress(i['raw_record']).decode()), 'swiss'))
+            ret.append(_extract_seqrecord(i['raw_record']))
         return ret
 
 
@@ -183,4 +135,3 @@ class MongoDatabase(object):
                 tasks.append(asyncio.ensure_future(self._add_protein(record, ppe)))
                 pbar.update()
         await asyncio.wait(tasks)
-
