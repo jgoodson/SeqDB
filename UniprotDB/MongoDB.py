@@ -69,13 +69,11 @@ class MongoDatabase(BaseDatabase):
     def _reset(self):
         self.loop.run_until_complete(self.client[self.database].proteins.drop())
 
-    def _create_indices(self):
-        self.loop.run_until_complete(self.client[self.database].proteins.create_index([('genome', 1)]))
-        indices = ['RefSeq', 'STRING', 'GeneID', 'PIR', 'Uni_name', 'PDB', 'EMBL', 'GO', 'Pfam', 'Proteomes']
-        for field in indices:
+    def _create_indices(self, background=False):
+        for field in self.indices:
             self.loop.run_until_complete(
-                self.client[self.database].proteins.create_index(keys=[(field, pymongo.ASCENDING)],
-                                                                 partialFilterExpression={field: {'$exists': True}}))
+                self.client[self.database].proteins.create_index([(field, pymongo.ASCENDING)],
+                                                                 background=background, sparse=True))
 
     def update(self, handles, filter_fn=None, loud=False, total=None, processes=1):
         self.loop.run_until_complete(

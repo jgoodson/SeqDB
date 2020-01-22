@@ -6,6 +6,7 @@ import sys
 
 class BaseDatabase(ABC):
     ids = ['_id', 'RefSeq', 'STRING', 'GeneID', 'PIR', 'Uni_name']
+    indices = ['RefSeq', 'STRING', 'GeneID', 'PIR', 'Uni_name', 'PDB', 'EMBL', 'GO', 'Pfam', 'Proteomes', 'genome']
 
     @abstractmethod
     def __init__(self, database, host, compressor=None, decompressor=None, create_protein_func=None):
