@@ -11,8 +11,19 @@ from requests.exceptions import SSLError, ConnectionError
 
 sprot_url = 'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.dat.gz'
 trembl_url = 'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_trembl.dat.gz'
-trembl_bac_url = 'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/taxonomic_divisions/uniprot_trembl_bacteria.dat.gz'
-trembl_arc_url = 'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/taxonomic_divisions/uniprot_trembl_archaea.dat.gz'
+trembl_taxa_prefix = 'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/taxonomic_divisions/'
+trembl_taxa = dict(
+    trembl_bac_url='uniprot_trembl_bacteria.dat.gz',
+    trembl_arc_url='uniprot_trembl_archaea.dat.gz',
+    trembl_hum_url='uniprot_trembl_human.dat.gz',
+    trembl_fun_url='uniprot_trembl_fungi.dat.gz',
+    trembl_inv_url='uniprot_trembl_invertebrates.dat.gz',
+    trembl_mam_url='uniprot_trembl_mammals.dat.gz',
+    trembl_pla_url='uniprot_trembl_plants.dat.gz',
+    trembl_rod_url='uniprot_trembl_rodents.dat.gz',
+    trembl_ver_url='uniprot_trembl_vertebrates.dat.gz',
+    trembl_vir_url='uniprot_trembl_viruses.dat.gz',
+)
 
 query_req = 'https://www.uniprot.org/uniprot/?query={}&format=list'
 fetch_req = 'https://www.uniprot.org/uniprot/{}.txt'
@@ -91,14 +102,21 @@ class SeqDB(collections.Mapping):
         self.update([sprot], filter_fn=filter_fn, loud=loud, processes=processes)
         sprot.close()
 
-    def update_trembl_prok(self, filter_fn=None, processes=1, loud=True):
+    def update_trembl_taxa(self, taxa, filter_fn=None, processes=1, loud=True):
         import urllib.request
-        arch = urllib.request.urlopen(trembl_arc_url)
-        self.update([arch], filter_fn=filter_fn, loud=loud, processes=processes)
-        arch.close()
-        bact = urllib.request.urlopen(trembl_bac_url)
-        self.update([bact], filter_fn=filter_fn, loud=loud, processes=processes)
-        bact.close()
+        for taxon in taxa:
+            taxon_handle = urllib.request.urlopen(trembl_taxa_prefix+trembl_taxa[taxon])
+            print("Updating {}".format(taxon))
+            self.update([taxon_handle], filter_fn, loud, processes)
+            taxon_handle.close()
+
+    def update_trembl_prok(self, filter_fn=None, processes=1, loud=True):
+        self.update_trembl_taxa(['bac', 'arc'],
+                                filter_fn, processes, loud)
+
+    def update_trembl_euk(self, filter_fn=None, processes=1, loud=True):
+        self.update_trembl_taxa(['fun', 'hum', 'inv', 'mam', 'pla', 'rod', 'ver', 'vir'],
+                                filter_fn, processes, loud)
 
     def update_trembl(self, filter_fn=None, processes=1, loud=True):
         import urllib.request
