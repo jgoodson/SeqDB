@@ -13,16 +13,16 @@ sprot_url = 'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowled
 trembl_url = 'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_trembl.dat.gz'
 trembl_taxa_prefix = 'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/taxonomic_divisions/'
 trembl_taxa = dict(
-    trembl_bac_url='uniprot_trembl_bacteria.dat.gz',
-    trembl_arc_url='uniprot_trembl_archaea.dat.gz',
-    trembl_hum_url='uniprot_trembl_human.dat.gz',
-    trembl_fun_url='uniprot_trembl_fungi.dat.gz',
-    trembl_inv_url='uniprot_trembl_invertebrates.dat.gz',
-    trembl_mam_url='uniprot_trembl_mammals.dat.gz',
-    trembl_pla_url='uniprot_trembl_plants.dat.gz',
-    trembl_rod_url='uniprot_trembl_rodents.dat.gz',
-    trembl_ver_url='uniprot_trembl_vertebrates.dat.gz',
-    trembl_vir_url='uniprot_trembl_viruses.dat.gz',
+    bacteria='uniprot_trembl_bacteria.dat.gz',
+    archaea='uniprot_trembl_archaea.dat.gz',
+    human='uniprot_trembl_human.dat.gz',
+    fungi='uniprot_trembl_fungi.dat.gz',
+    invertebrate='uniprot_trembl_invertebrates.dat.gz',
+    mammal='uniprot_trembl_mammals.dat.gz',
+    plant='uniprot_trembl_plants.dat.gz',
+    rodent='uniprot_trembl_rodents.dat.gz',
+    verterbrate='uniprot_trembl_vertebrates.dat.gz',
+    virus='uniprot_trembl_viruses.dat.gz',
 )
 
 query_req = 'https://www.uniprot.org/uniprot/?query={}&format=list'
@@ -111,11 +111,11 @@ class SeqDB(collections.Mapping):
             taxon_handle.close()
 
     def update_trembl_prok(self, filter_fn=None, processes=1, loud=True):
-        self.update_trembl_taxa(['bac', 'arc'],
+        self.update_trembl_taxa(['bacteria', 'archaea'],
                                 filter_fn, processes, loud)
 
     def update_trembl_euk(self, filter_fn=None, processes=1, loud=True):
-        self.update_trembl_taxa(['fun', 'hum', 'inv', 'mam', 'pla', 'rod', 'ver', 'vir'],
+        self.update_trembl_taxa(['fungi', 'human', 'invertebrate', 'mammal', 'plant', 'rodent', 'vertebrate', 'virus'],
                                 filter_fn, processes, loud)
 
     def update_trembl(self, filter_fn=None, processes=1, loud=True):
