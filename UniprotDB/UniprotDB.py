@@ -1,4 +1,5 @@
 import collections
+
 try:
     from cStringIO import StringIO as IOFunc
 except ImportError:
@@ -8,18 +9,16 @@ from UniprotDB.MongoDB import MongoDatabase
 import requests
 from requests.exceptions import SSLError, ConnectionError
 
-from UniprotDB._utils import _create_protein
-
 sprot_url = 'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.dat.gz'
 trembl_url = 'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_trembl.dat.gz'
 trembl_bac_url = 'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/taxonomic_divisions/uniprot_trembl_bacteria.dat.gz'
 trembl_arc_url = 'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/taxonomic_divisions/uniprot_trembl_archaea.dat.gz'
 
-
 query_req = 'https://www.uniprot.org/uniprot/?query={}&format=list'
 fetch_req = 'https://www.uniprot.org/uniprot/{}.txt'
 uniparc_s_req = 'http://www.uniprot.org/uniparc/?query={}&format=list'
 unipart_f_req = 'http://www.uniprot.org/uniparc/{}.xml'
+
 
 def search_uniprot(value, retries=3):
     possible_ids = []
@@ -43,7 +42,6 @@ def search_uniprot(value, retries=3):
 
 class SeqDB(collections.Mapping):
 
-
     def __init__(self, database='uniprot', host=(), dbtype=MongoDatabase, on_demand=False):
         self.db = dbtype(database, host)
         self.database = database
@@ -57,7 +55,7 @@ class SeqDB(collections.Mapping):
         if not r and self.on_demand:
             raw_records = search_uniprot(item)
             for raw_record in raw_records:
-                if self.db.add_protein(_create_protein(raw_record), test=item):
+                if self.db.add_record(raw_record, test=item):
                     r = self.db.get_item(item)
                     break
         return r
@@ -79,42 +77,35 @@ class SeqDB(collections.Mapping):
         if not r:
             raw_records = search_uniprot(value)
             for raw_record in raw_records:
-                if self.db.add_protein(_create_protein(raw_record), test=value, test_attr=attr):
+                if self.db.add_record(raw_record, test=value, test_attr=attr):
                     r = self.db.get_item(value)
                     break
         return r
 
     def update(self, handles, filter_fn=None, n_seqs=None, loud=False, processes=1):
-        """
-        Update from a Uniprot release file
-
-
-        :param handle: Streaming handle for a SwissProt format flatfile (gzipped)
-        :return: None
-        """
         self.db.update(handles, filter_fn=filter_fn, total=n_seqs, loud=loud, processes=processes)
 
-    def update_swissprot(self, filter_fn=None, processes=1):
+    def update_swissprot(self, filter_fn=None, processes=1, loud=True):
         import urllib.request
-
         sprot = urllib.request.urlopen(sprot_url)
-        self.update([sprot], filter_fn=filter_fn, loud=True, processes=processes)
+        self.update([sprot], filter_fn=filter_fn, loud=loud, processes=processes)
         sprot.close()
 
-    def update_trembl_prok(self, processes=1):
+    def update_trembl_prok(self, filter_fn=None, processes=1, loud=True):
         import urllib.request
         arch = urllib.request.urlopen(trembl_arc_url)
-        self.update([arch], loud=True, processes=processes)
+        self.update([arch], filter_fn=filter_fn, loud=loud, processes=processes)
         arch.close()
         bact = urllib.request.urlopen(trembl_bac_url)
-        self.update([bact], loud=True, processes=processes)
+        self.update([bact], filter_fn=filter_fn, loud=loud, processes=processes)
         bact.close()
 
-    def update_trembl(self, processes=1):
+    def update_trembl(self, filter_fn=None, processes=1, loud=True):
         import urllib.request
         trembl = urllib.request.urlopen(trembl_url)
-        self.update([trembl], loud=True, processes=processes)
+        self.update([trembl], filter_fn=filter_fn, loud=loud, processes=processes)
         trembl.close()
+
 
 def create_index(flatfiles, host=(), database='uniprot', filter=None, **kwargs):
     """

@@ -1,10 +1,4 @@
 import itertools
-
-try:
-    from itertools import izip_longest as zip_longest
-except ImportError:
-    from itertools import zip_longest
-
 import concurrent.futures
 import asyncio
 import motor.motor_asyncio
@@ -13,24 +7,21 @@ from tqdm import tqdm
 
 from UniprotDB.BaseDatabase import BaseDatabase
 from UniprotDB.SwissProtUtils import parse_raw_swiss
-from UniprotDB._utils import _extract_seqrecord, _create_protein
 
 
 class MongoDatabase(BaseDatabase):
 
-    def __init__(self, database, host):
+    def __init__(self, database, host, **kwargs):
+        super().__init__(database, host, **kwargs)
         self.loop = asyncio.get_event_loop()
-        # self.loop.set_debug(True)
-        self.host = host
         self.client = motor.motor_asyncio.AsyncIOMotorClient(*host)
-        self.database = database
         self.col = self.client[database].proteins
 
     def get_item(self, item):
         t = self.loop.run_until_complete(self.col.find_one({'$or': [{i: item} for i in self.ids]}))
         if t is None:
             return None
-        r = _extract_seqrecord(t['raw_record'])
+        r = self._extract_seqrecord(t['raw_record'])
         return r
 
     def get_iter(self):
@@ -43,7 +34,7 @@ class MongoDatabase(BaseDatabase):
 
     async def _get_iter(self, q):
         async for entry in self.col.find({'_id': {'$exists': True}}):
-            await q.put(_extract_seqrecord(entry['raw_record']))
+            await q.put(self._extract_seqrecord(entry['raw_record']))
         await q.put(None)
 
     def get_iterkeys(self):
@@ -72,7 +63,7 @@ class MongoDatabase(BaseDatabase):
         ret = []
         res = self.col.find({attr: value}, {'raw_record': 1})
         async for i in res:
-            ret.append(_extract_seqrecord(i['raw_record']))
+            ret.append(self._extract_seqrecord(i['raw_record']))
         return ret
 
     def _reset(self):
@@ -90,20 +81,10 @@ class MongoDatabase(BaseDatabase):
         self.loop.run_until_complete(
             self._add_from_handles(handles, filter_fn=filter_fn, total=total, loud=loud, processes=processes))
 
-    def add_protein(self, protein, test=None, test_attr=None):
-        return self.loop.run_until_complete(self._add_protein(protein, test=test, test_attr=test_attr))
+    def add_protein(self, protein):
+        return self.loop.run_until_complete(self._add_protein(protein))
 
-    async def _add_protein(self, protein, test=None, test_attr=None):
-        if test:
-            good = False
-            if test == protein['_id']:
-                good = True
-            if not good:
-                for ref in ([test_attr] if test_attr else self.ids):
-                    if test in protein.get(ref, []):
-                        good = True
-            if not good:
-                return False
+    async def _add_protein(self, protein):
         await self.col.replace_one({'_id': protein['_id']}, protein, upsert=True)
         return True
 
@@ -111,7 +92,7 @@ class MongoDatabase(BaseDatabase):
         raw_protein_records = itertools.chain(*[parse_raw_swiss(handle, filter_fn) for handle in handles])
         tasks = []
         n = 100
-        ppe = concurrent.futures.ProcessPoolExecutor(max_workers=processes)
+        ppe = concurrent.futures.ThreadPoolExecutor(max_workers=processes)
         with tqdm(total=total, smoothing=0.1, disable=(not loud)) as pbar:
             for record in raw_protein_records:
                 if len(tasks) > n:
@@ -121,7 +102,7 @@ class MongoDatabase(BaseDatabase):
                     if len(pending) > n:
                         for i in range(len(pending) - n):
                             await pending[i]
-                protein = await self.loop.run_in_executor(ppe, _create_protein, record)
+                protein = await self.loop.run_in_executor(ppe, self.create_protein_func, record)
                 tasks.append(asyncio.ensure_future(self._add_protein(protein)))
                 pbar.update()
         await asyncio.wait(tasks)

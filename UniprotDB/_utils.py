@@ -1,12 +1,8 @@
 from datetime import datetime
 from collections import defaultdict
 
-import zstd
 from Bio import SeqIO
 from io import StringIO as IOFunc
-
-compressor, decomp = zstd.ZstdCompressor(write_content_size=True), zstd.ZstdDecompressor()
-
 
 def _get_date(dateline):
     months = {
@@ -19,7 +15,7 @@ def _get_date(dateline):
     return datetime(int(year), months[month], int(day))
 
 
-def _create_protein(raw_record):
+def _create_protein_swiss(raw_record, compressor):
     lines = raw_record.decode().split('\n')
     desc_lines = []
     refs = defaultdict(list)
@@ -53,5 +49,5 @@ def _create_protein(raw_record):
     )
 
 
-def _extract_seqrecord(raw_record):
-    return SeqIO.read(IOFunc(decomp.decompress(raw_record).decode()), 'swiss')
+def _extract_seqrecord(raw_record, decompressor):
+    return SeqIO.read(IOFunc(decompressor.decompress(raw_record).decode()), 'swiss')
