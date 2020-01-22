@@ -8,6 +8,8 @@ from UniprotDB.MongoDB import MongoDatabase
 import requests
 from requests.exceptions import SSLError, ConnectionError
 
+from UniprotDB._utils import _create_protein
+
 sprot_url = 'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.dat.gz'
 trembl_url = 'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_trembl.dat.gz'
 trembl_bac_url = 'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/taxonomic_divisions/uniprot_trembl_bacteria.dat.gz'
@@ -55,11 +57,10 @@ class SeqDB(collections.Mapping):
         if not r and self.on_demand:
             raw_records = search_uniprot(item)
             for raw_record in raw_records:
-                if self.db.add_protein(raw_record, test=item):
+                if self.db.add_protein(_create_protein(raw_record), test=item):
                     r = self.db.get_item(item)
                     break
         return r
-
 
     def __iter__(self):
         return self.db.get_iter()
@@ -78,7 +79,7 @@ class SeqDB(collections.Mapping):
         if not r:
             raw_records = search_uniprot(value)
             for raw_record in raw_records:
-                if self.db.add_protein(raw_record, test=value, test_attr=attr):
+                if self.db.add_protein(_create_protein(raw_record), test=value, test_attr=attr):
                     r = self.db.get_item(value)
                     break
         return r

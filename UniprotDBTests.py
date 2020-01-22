@@ -50,7 +50,7 @@ class CreateTest(unittest.TestCase):
     def test_update_filtered(self):
         with open('TestFiles/testbig.dat.gz', 'rb') as h:
             self.db.update([h], filter_fn=filter_proks)
-        self.assertEqual(len(set(e.name for e in self.db)), 69)
+        self.assertEqual(len(set(e.name for e in self.db)), 70)
 
     def setUp(self):
         self.database = 'test_uni2'
