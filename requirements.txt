@@ -1,4 +1,4 @@
-biopython
+biopython>=1.77
 pymongo
 zstandard
 tqdm

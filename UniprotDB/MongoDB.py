@@ -104,7 +104,7 @@ class MongoDatabase(BaseDatabase):
             workers.append(asyncio.create_task(worker(q)))
         for record in tqdm(raw_protein_records, disable=(not loud), total=total, smoothing=0.1):
             protein = self.create_protein_func(record)
-            q.put_nowait(protein)
+            await q.put(protein)
         await q.join()
         for worker in workers:
             worker.cancel()
