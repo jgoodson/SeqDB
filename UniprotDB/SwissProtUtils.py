@@ -21,7 +21,7 @@ def filter_proks(record):
     Example filter function which returns True only for prokaryotes
     """
     good_taxa = {b'Archaea', b'Bacteria', }
-    taxa = re.search(b'^OC.*\n', record).group()[5:]
+    taxa = re.search(b'OC.*\n', record).group()[5:]
     base_taxa = taxa.split(b'; ')[0]
     good = base_taxa in good_taxa
     return good

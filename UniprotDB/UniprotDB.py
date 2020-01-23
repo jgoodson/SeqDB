@@ -11,19 +11,7 @@ from requests.exceptions import SSLError, ConnectionError
 
 sprot_url = 'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.dat.gz'
 trembl_url = 'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_trembl.dat.gz'
-trembl_taxa_prefix = 'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/taxonomic_divisions/'
-trembl_taxa = dict(
-    bacteria='uniprot_trembl_bacteria.dat.gz',
-    archaea='uniprot_trembl_archaea.dat.gz',
-    human='uniprot_trembl_human.dat.gz',
-    fungi='uniprot_trembl_fungi.dat.gz',
-    invertebrate='uniprot_trembl_invertebrates.dat.gz',
-    mammal='uniprot_trembl_mammals.dat.gz',
-    plant='uniprot_trembl_plants.dat.gz',
-    rodent='uniprot_trembl_rodents.dat.gz',
-    verterbrate='uniprot_trembl_vertebrates.dat.gz',
-    virus='uniprot_trembl_viruses.dat.gz',
-)
+trembl_taxa_prefix = 'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/taxonomic_divisions/uniprot_trembl_{}.dat.gz'
 
 query_req = 'https://www.uniprot.org/uniprot/?query={}&format=list'
 fetch_req = 'https://www.uniprot.org/uniprot/{}.txt'
@@ -105,7 +93,7 @@ class SeqDB(collections.Mapping):
     def update_trembl_taxa(self, taxa, filter_fn=None, processes=1, loud=True):
         import urllib.request
         for taxon in taxa:
-            taxon_handle = urllib.request.urlopen(trembl_taxa_prefix+trembl_taxa[taxon])
+            taxon_handle = urllib.request.urlopen(trembl_taxa_prefix.format(taxon))
             print("Updating {}".format(taxon))
             self.update([taxon_handle], filter_fn, loud, processes)
             taxon_handle.close()
