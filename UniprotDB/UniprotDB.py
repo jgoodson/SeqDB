@@ -81,35 +81,35 @@ class SeqDB(collections.Mapping):
                     break
         return r
 
-    def update(self, handles, filter_fn=None, n_seqs=None, loud=False, processes=1):
-        self.db.update(handles, filter_fn=filter_fn, total=n_seqs, loud=loud, processes=processes)
+    def update(self, handles, filter_fn=None, n_seqs=None, loud=False, workers=1):
+        self.db.update(handles, filter_fn=filter_fn, total=n_seqs, loud=loud, workers=workers)
 
-    def update_swissprot(self, filter_fn=None, processes=1, loud=True):
+    def update_swissprot(self, filter_fn=None, workers=1, loud=True):
         import urllib.request
         sprot = urllib.request.urlopen(sprot_url)
-        self.update([sprot], filter_fn=filter_fn, loud=loud, processes=processes)
+        self.update([sprot], filter_fn=filter_fn, loud=loud, workers=workers)
         sprot.close()
 
-    def update_trembl_taxa(self, taxa, filter_fn=None, processes=1, loud=True):
+    def update_trembl_taxa(self, taxa, filter_fn=None, workers=1, loud=True):
         import urllib.request
         for taxon in taxa:
             taxon_handle = urllib.request.urlopen(trembl_taxa_prefix.format(taxon))
             print("Updating {}".format(taxon))
-            self.update([taxon_handle], filter_fn, loud, processes)
+            self.update([taxon_handle], filter_fn, loud, workers)
             taxon_handle.close()
 
-    def update_trembl_prok(self, filter_fn=None, processes=1, loud=True):
+    def update_trembl_prok(self, filter_fn=None, workers=1, loud=True):
         self.update_trembl_taxa(['bacteria', 'archaea'],
-                                filter_fn, processes, loud)
+                                filter_fn, workers, loud)
 
-    def update_trembl_euk(self, filter_fn=None, processes=1, loud=True):
+    def update_trembl_euk(self, filter_fn=None, workers=1, loud=True):
         self.update_trembl_taxa(['fungi', 'human', 'invertebrate', 'mammal', 'plant', 'rodent', 'vertebrate', 'virus'],
-                                filter_fn, processes, loud)
+                                filter_fn, workers, loud)
 
-    def update_trembl(self, filter_fn=None, processes=1, loud=True):
+    def update_trembl(self, filter_fn=None, workers=1, loud=True):
         import urllib.request
         trembl = urllib.request.urlopen(trembl_url)
-        self.update([trembl], filter_fn=filter_fn, loud=loud, processes=processes)
+        self.update([trembl], filter_fn=filter_fn, loud=loud, workers=workers)
         trembl.close()
 
 
@@ -128,4 +128,4 @@ def create_index(flatfiles, host=(), database='uniprot', filter=None, **kwargs):
 
 if __name__ == '__main__':
     s = SeqDB()
-    print(s['A0A1Q5DVX7'])
+    s.update(['test.dat.bgz'])

@@ -76,8 +76,10 @@ class MongoDatabase(BaseDatabase):
                 self.client[self.database].proteins.create_index([(field, pymongo.ASCENDING)],
                                                                  background=background, sparse=True))
 
-    def update(self, handles, filter_fn=None, loud=False, total=None, processes=1):
-        self._add_from_handles(handles, filter_fn=filter_fn, total=total, loud=loud, processes=processes)
+    def update(self, handles, filter_fn=None, loud=False, total=None, workers=1):
+        self.loop.run_until_complete(
+            self._add_from_handles(handles, filter_fn=filter_fn, total=total, loud=loud, n_workers=workers)
+        )
 
     def add_protein(self, protein):
         return self.loop.run_until_complete(self._add_protein(protein))
@@ -86,11 +88,24 @@ class MongoDatabase(BaseDatabase):
         await self.col.replace_one({'_id': protein['_id']}, protein, upsert=True)
         return True
 
-    def _add_from_handles(self, handles, filter_fn=None, total=None, loud=False, processes=4):
-        raw_protein_records = itertools.chain(*[parse_raw_swiss(handle, filter_fn) for handle in handles])
-        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ppe:
-            def ap(record):
-                    self.add_protein(self.create_protein_func(record))
+    async def _add_from_handles(self, handles, filter_fn=None, total=None, loud=False, n_workers=1):
 
-            collections.deque(ppe.map(ap, tqdm(raw_protein_records, total=total, smoothing=0.1, disable=(not loud))),
-                              maxlen=0)
+        async def worker(q):
+            while True:
+                protein = await q.get()
+                await self._add_protein(protein)
+                q.task_done()
+
+        raw_protein_records = itertools.chain(*[parse_raw_swiss(handle, filter_fn) for handle in handles])
+
+        q = asyncio.Queue(maxsize=1000)
+        workers = []
+        for n in range(n_workers):
+            workers.append(asyncio.create_task(worker(q)))
+        for record in tqdm(raw_protein_records, disable=(not loud), total=total, smoothing=0.1):
+            protein = self.create_protein_func(record)
+            q.put_nowait(protein)
+        await q.join()
+        for worker in workers:
+            worker.cancel()
+        await asyncio.gather(*workers, return_exceptions=True)
