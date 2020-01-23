@@ -93,18 +93,18 @@ class MongoDatabase(BaseDatabase):
         async def worker(q):
             while True:
                 protein = await q.get()
-                await self._add_protein(protein)
+                await self._add_protein(protein.result())
                 q.task_done()
 
         raw_protein_records = itertools.chain(*[parse_raw_swiss(handle, filter_fn) for handle in handles])
-
+        tpe = concurrent.futures.ThreadPoolExecutor(n_workers)
         q = asyncio.Queue(maxsize=1000)
         workers = []
         for n in range(n_workers):
             workers.append(asyncio.create_task(worker(q)))
         for record in tqdm(raw_protein_records, disable=(not loud), total=total, smoothing=0.1):
-            protein = self.create_protein_func(record)
-            await q.put(protein)
+            future_protein = self.loop.run_in_executor(tpe, self.create_protein_func, record)
+            await q.put(future_protein)
         await q.join()
         for worker in workers:
             worker.cancel()
