@@ -4,6 +4,7 @@ import asyncio
 import motor.motor_asyncio
 import pymongo
 from tqdm import tqdm
+import collections
 
 from UniprotDB.BaseDatabase import BaseDatabase
 from UniprotDB.SwissProtUtils import parse_raw_swiss
@@ -76,8 +77,7 @@ class MongoDatabase(BaseDatabase):
                                                                  background=background, sparse=True))
 
     def update(self, handles, filter_fn=None, loud=False, total=None, processes=1):
-        self.loop.run_until_complete(
-            self._add_from_handles(handles, filter_fn=filter_fn, total=total, loud=loud, processes=processes))
+        self._add_from_handles(handles, filter_fn=filter_fn, total=total, loud=loud, processes=processes)
 
     def add_protein(self, protein):
         return self.loop.run_until_complete(self._add_protein(protein))
@@ -86,21 +86,11 @@ class MongoDatabase(BaseDatabase):
         await self.col.replace_one({'_id': protein['_id']}, protein, upsert=True)
         return True
 
-    async def _add_from_handles(self, handles, filter_fn=None, total=None, loud=False, processes=4):
+    def _add_from_handles(self, handles, filter_fn=None, total=None, loud=False, processes=4):
         raw_protein_records = itertools.chain(*[parse_raw_swiss(handle, filter_fn) for handle in handles])
-        tasks = []
-        n = 100
-        ppe = concurrent.futures.ThreadPoolExecutor(max_workers=processes)
-        with tqdm(total=total, smoothing=0.1, disable=(not loud)) as pbar:
-            for record in raw_protein_records:
-                if len(tasks) > n:
-                    done, pending = await asyncio.wait(tasks, return_when=asyncio.FIRST_COMPLETED)
-                    for d in done:
-                        tasks.remove(d)
-                    if len(pending) > n:
-                        for i in range(len(pending) - n):
-                            await pending[i]
-                protein = await self.loop.run_in_executor(ppe, self.create_protein_func, record)
-                tasks.append(asyncio.ensure_future(self._add_protein(protein)))
-                pbar.update()
-        await asyncio.wait(tasks)
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as ppe:
+            def ap(record):
+                    self.add_protein(self.create_protein_func(record))
+
+            collections.deque(ppe.map(ap, tqdm(raw_protein_records, total=total, smoothing=0.1, disable=(not loud))),
+                              maxlen=0)
