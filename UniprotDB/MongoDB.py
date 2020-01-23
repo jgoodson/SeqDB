@@ -93,7 +93,7 @@ class MongoDatabase(BaseDatabase):
         async def worker(q):
             while True:
                 protein = await q.get()
-                await self._add_protein(protein.result())
+                await self._add_protein(await protein)
                 q.task_done()
 
         raw_protein_records = itertools.chain(*[parse_raw_swiss(handle, filter_fn) for handle in handles])

@@ -24,12 +24,12 @@ class BaseDatabase(ABC):
         self._extract_seqrecord = partial(_extract_seqrecord,  decompressor=self.decompressor)
         pass
 
-    def initialize(self, seq_handles, filter_fn=None, loud=False, n_seqs=None, processes=1):
+    def initialize(self, seq_handles, filter_fn=None, loud=False, n_seqs=None, workers=1):
         if loud:
             print("--initializating database\n", file=sys.stderr)
         self._reset()
 
-        self.update(seq_handles, filter_fn=filter_fn, loud=loud, total=n_seqs, processes=processes)
+        self.update(seq_handles, filter_fn=filter_fn, loud=loud, total=n_seqs, workers=workers)
 
         self._create_indices()
 
