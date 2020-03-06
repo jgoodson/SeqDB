@@ -9,6 +9,8 @@ from UniprotDB.MongoDB import MongoDatabase
 import requests
 from requests.exceptions import SSLError, ConnectionError
 
+import gzip
+
 sprot_url = 'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.dat.gz'
 trembl_url = 'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_trembl.dat.gz'
 trembl_taxa_prefix = 'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/taxonomic_divisions/uniprot_trembl_{}.dat.gz'
@@ -86,14 +88,14 @@ class SeqDB(collections.Mapping):
 
     def update_swissprot(self, filter_fn=None, workers=1, loud=True):
         import urllib.request
-        sprot = urllib.request.urlopen(sprot_url)
+        sprot = gzip.open(urllib.request.urlopen(sprot_url))
         self.update([sprot], filter_fn=filter_fn, loud=loud, workers=workers)
         sprot.close()
 
     def update_trembl_taxa(self, taxa, filter_fn=None, workers=1, loud=True):
         import urllib.request
         for taxon in taxa:
-            taxon_handle = urllib.request.urlopen(trembl_taxa_prefix.format(taxon))
+            taxon_handle = gzip.open(urllib.request.urlopen(trembl_taxa_prefix.format(taxon)))
             print("Updating {}".format(taxon))
             self.update([taxon_handle], filter_fn, loud, workers)
             taxon_handle.close()
@@ -108,7 +110,7 @@ class SeqDB(collections.Mapping):
 
     def update_trembl(self, filter_fn=None, workers=1, loud=True):
         import urllib.request
-        trembl = urllib.request.urlopen(trembl_url)
+        trembl = gzip.open(urllib.request.urlopen(trembl_url))
         self.update([trembl], filter_fn=filter_fn, loud=loud, workers=workers)
         trembl.close()
 
@@ -119,7 +121,7 @@ def create_index(flatfiles, host=(), database='uniprot', filter=None, **kwargs):
     identifier, fill the database with the protein entries and returns a SeqDB object.
     """
     s = SeqDB(database, host, **kwargs)
-    handles = [open(f, 'rb') for f in flatfiles]
+    handles = [gzip.open(f, 'rb') for f in flatfiles]
     s.db.initialize(handles, filter_fn=filter)
     for f in handles:
         f.close()

@@ -1,6 +1,4 @@
-import gzip
 import re
-from datetime import datetime
 
 
 def _get_record(handle, ignore={b'R', b'C'}):
@@ -38,7 +36,6 @@ def parse_raw_swiss(handle, filter_fn=None, check_date=False):
     """
     if not filter_fn:
         filter_fn = lambda r: True
-    with gzip.open(handle) as stream:
-        for res in _get_record(stream):
+        for res in _get_record(handle):
             if filter_fn(res):
                 yield res

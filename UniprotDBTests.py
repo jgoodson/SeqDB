@@ -37,7 +37,7 @@ class MongoTest(unittest.TestCase):
         self.assertEqual(self.db.get('Q92AT0').id, 'Q92AT0')
 
     def test_update(self):
-        with open('TestFiles/testbig.dat.gz', 'rb') as h:
+        with gzip.open('TestFiles/testbig.dat.gz', 'rb') as h:
             self.db.update([h])
         with gzip.open('TestFiles/testbig.dat.gz', 'rb') as h:
             ids = set(l.split()[1].decode() for l in h if l.startswith(b'ID'))
@@ -45,7 +45,7 @@ class MongoTest(unittest.TestCase):
         self.assertEqual(inserted_ids, ids)
 
     def test_update_filtered(self):
-        with open('TestFiles/testbig.dat.gz', 'rb') as h:
+        with gzip.open('TestFiles/testbig.dat.gz', 'rb') as h:
             self.db.update([h], filter_fn=filter_proks)
         self.assertEqual(len(set(e.name for e in self.db)), 70)
 
