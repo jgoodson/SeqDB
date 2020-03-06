@@ -1,8 +1,9 @@
-from datetime import datetime
 from collections import defaultdict
+from datetime import datetime
+from io import StringIO as IOFunc
 
 from Bio import SeqIO
-from io import StringIO as IOFunc
+
 
 def _get_date(dateline):
     months = {

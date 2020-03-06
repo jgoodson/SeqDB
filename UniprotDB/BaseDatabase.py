@@ -1,12 +1,12 @@
+import sys
 from abc import ABC, abstractmethod
 from functools import partial
-import sys
-
 
 
 class BaseDatabase(ABC):
     ids = ['_id', 'RefSeq', 'STRING', 'GeneID', 'PIR', 'Uni_name']
-    indices = ['RefSeq', 'STRING', 'GeneID', 'PIR', 'Uni_name', 'PDB', 'EMBL', 'GO', 'Pfam', 'Proteomes', 'genome', 'taxid']
+    indices = ['RefSeq', 'STRING', 'GeneID', 'PIR', 'Uni_name', 'PDB', 'EMBL', 'GO', 'Pfam', 'Proteomes', 'genome',
+               'taxid']
 
     @abstractmethod
     def __init__(self, database, host, compressor=None, decompressor=None, create_protein_func=None):
@@ -16,12 +16,13 @@ class BaseDatabase(ABC):
             import zstd
             self.compressor = zstd.ZstdCompressor()
         if not decompressor:
+            import zstd
             self.decompressor = zstd.ZstdDecompressor()
         if not create_protein_func:
             from UniprotDB._utils import _create_protein_swiss
             self.create_protein_func = partial(_create_protein_swiss, compressor=self.compressor)
         from UniprotDB._utils import _extract_seqrecord
-        self._extract_seqrecord = partial(_extract_seqrecord,  decompressor=self.decompressor)
+        self._extract_seqrecord = partial(_extract_seqrecord, decompressor=self.decompressor)
         pass
 
     def initialize(self, seq_handles, filter_fn=None, loud=False, n_seqs=None, workers=1):
@@ -31,7 +32,7 @@ class BaseDatabase(ABC):
 
         self._create_indices()
 
-        self.update(seq_handles, filter_fn=filter_fn, loud=loud, total=n_seqs, workers=workers)
+        self.update(seq_handles, filter_fn=filter_fn, loud=loud, total=n_seqs)
 
         if loud:
             print("--initialized database\n", file=sys.stderr)

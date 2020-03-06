@@ -1,4 +1,5 @@
 import itertools
+
 import pymongo
 from tqdm import tqdm
 
@@ -23,7 +24,6 @@ class MongoDatabase(BaseDatabase):
     def get_iter(self):
         for entry in self.col.find({'_id': {'$exists': True}}):
             yield self._extract_seqrecord(entry['raw_record'])
-
 
     def get_iterkeys(self):
         for i in self.col.find({'_id': {'$exists': True}}, {'_id': 1}):

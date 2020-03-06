@@ -1,6 +1,5 @@
-import tempfile
-import unittest
 import gzip
+import unittest
 
 from UniprotDB import UniprotDB
 from UniprotDB.SwissProtUtils import filter_proks
@@ -56,6 +55,7 @@ class MongoTest(unittest.TestCase):
     def tearDown(self):
         pass
 
+
 class AsyncTest(MongoTest):
 
     def setUp(self):
@@ -63,6 +63,7 @@ class AsyncTest(MongoTest):
         self.database = 'test_uni2'
         self.db = UniprotDB.create_index(['TestFiles/test.dat.bgz'],
                                          database=self.database, on_demand=True, dbtype=MongoDatabase)
+
 
 if __name__ == '__main__':
     unittest.main()

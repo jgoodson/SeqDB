@@ -1,7 +1,7 @@
 import re
 
 
-def _get_record(handle, ignore={b'R', b'C'}):
+def _get_record(handle, ignore=(b'R', b'C')):
     """
     Returns the next complete SwissProt entry in the input handle
     """
@@ -25,7 +25,7 @@ def filter_proks(record):
     return good
 
 
-def parse_raw_swiss(handle, filter_fn=None, check_date=False):
+def parse_raw_swiss(handle, filter_fn=None):
     """
     Given a raw SwissProt format file containing many sequences, return an iterator of
     raw sequence strings.

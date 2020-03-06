@@ -1,10 +1,9 @@
-import itertools
-import concurrent.futures
 import asyncio
+import itertools
+
 import motor.motor_asyncio
 import pymongo
 from tqdm import tqdm
-import collections
 
 from UniprotDB.BaseDatabase import BaseDatabase
 from UniprotDB.SwissProtUtils import parse_raw_swiss
