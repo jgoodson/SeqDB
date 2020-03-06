@@ -101,7 +101,7 @@ class MongoDatabase(BaseDatabase):
                 q.task_done()
 
         raw_protein_records = itertools.chain(*[parse_raw_swiss(handle, filter_fn) for handle in handles])
-        tpe = concurrent.futures.ThreadPoolExecutor(1)
+        tpe = concurrent.futures.ThreadPoolExecutor(n_workers)
         q = asyncio.Queue(maxsize=100)
         workers = []
         for n in range(n_workers):
