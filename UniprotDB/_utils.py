@@ -31,7 +31,7 @@ def _create_protein_swiss(raw_record, compressor):
         elif s == 'OS':
             genome.append(l.split(maxsplit=1)[1].strip('. '))
         elif s == 'OX':
-            taxid = l.split('=')[1].strip(';')
+            taxid = l.split('=')[1].split()[0]
         elif s == 'DR':
             ref = l.split(maxsplit=1)[1]
             dec = ref.strip('.').split(';')
