@@ -6,10 +6,7 @@ from UniprotDB import UniprotDB
 from UniprotDB.SwissProtUtils import filter_proks
 
 
-class CreateTest(unittest.TestCase):
-
-    def test_direct(self):
-        self.assertIn('Q92AT0', self.db.db.loop.run_until_complete(self.db.db.col.distinct('_id')))
+class MongoTest(unittest.TestCase):
 
     def test_get(self):
         self.assertEqual(self.db.get('Q92AT0').id, 'Q92AT0')
@@ -58,6 +55,14 @@ class CreateTest(unittest.TestCase):
 
     def tearDown(self):
         pass
+
+class AsyncTest(MongoTest):
+
+    def setUp(self):
+        from UniprotDB.AsyncMongoDB import MongoDatabase
+        self.database = 'test_uni2'
+        self.db = UniprotDB.create_index(['TestFiles/test.dat.bgz'],
+                                         database=self.database, on_demand=True, dbtype=MongoDatabase)
 
 if __name__ == '__main__':
     unittest.main()
