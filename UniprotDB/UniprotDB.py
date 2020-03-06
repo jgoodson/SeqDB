@@ -46,8 +46,8 @@ class SeqDB(collections.Mapping):
         self.database = database
         self.on_demand = on_demand
 
-    def initialize(self, flatfiles, filter):
-        self.db.initialize(flatfiles, self.database, filter)
+    def initialize(self, flatfiles, *args, **kwargs):
+        self.db.initialize(flatfiles, *args, **kwargs)
 
     def __getitem__(self, item):
         r = self.db.get_item(item)
