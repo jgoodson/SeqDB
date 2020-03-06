@@ -41,7 +41,7 @@ def search_uniprot(value, retries=3):
             yield raw_record
 
 
-class SeqDB(collections.Mapping):
+class SeqDB(collections.abc.Mapping):
 
     def __init__(self, database='uniprot', host=(), dbtype=MongoDatabase, on_demand=False):
         self.db = dbtype(database, host)
