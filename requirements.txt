@@ -4,3 +4,4 @@ zstandard
 tqdm
 motor
 requests
+lmdb
