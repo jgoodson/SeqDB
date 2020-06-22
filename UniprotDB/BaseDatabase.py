@@ -21,6 +21,8 @@ class BaseDatabase(ABC):
         if not create_protein_func:
             from UniprotDB._utils import _create_protein_swiss
             self.create_protein_func = partial(_create_protein_swiss, compressor=self.compressor)
+        else:
+            self.create_protein_func = partial(create_protein_func, compressor=self.compressor)
         from UniprotDB._utils import _extract_seqrecord
         self._extract_seqrecord = partial(_extract_seqrecord, decompressor=self.decompressor)
         pass

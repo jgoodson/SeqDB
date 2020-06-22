@@ -11,11 +11,17 @@ class MongoTest(unittest.TestCase):
         self.assertEqual(self.db.get('Q92AT0').id, 'Q92AT0')
 
     def test_get_missing(self):
-        self.assertEqual(self.db.get('P0A784').id, 'P0A784')
-        self.assertEqual(self.db.get('ORN_HUMAN').id, 'Q9Y3B8')
+        if self.ondemand:
+            self.assertEqual(self.db.get('P0A784').id, 'P0A784')
+            self.assertEqual(self.db.get('ORN_HUMAN').id, 'Q9Y3B8')
+        else:
+            self.skipTest('Not testing on-demand feature')
 
     def test_getby_missing(self):
-        self.assertEqual(self.db.get_by('_id', 'P0A784').id, 'P0A784')
+        if self.ondemand:
+            self.assertEqual(self.db.get_by('_id', 'P0A784').id, 'P0A784')
+        else:
+            self.skipTest('Not testing on-demand feature')
 
     def test_iter(self):
         self.assertIsInstance(next(self.db.iterkeys()), str)
@@ -31,6 +37,8 @@ class MongoTest(unittest.TestCase):
 
     def test_getby(self):
         self.assertEqual(self.db.get_by('_id', 'Q92AT0')[0].id, "Q92AT0")
+        self.assertEqual(self.db.get_by('Uni_name', '12OLP_LISIN')[0].id, "Q92AT0")
+        self.assertEqual(self.db.get_by('RefSeq', 'WP_010990982.1')[0].id, "Q92AT0")
 
     def test_fetch(self):
         self.assertEqual(self.db.get('Q92AT0').id, 'Q92AT0')
@@ -50,7 +58,20 @@ class MongoTest(unittest.TestCase):
 
     def setUp(self):
         self.database = 'test_uni2'
-        self.db = UniprotDB.create_index(['TestFiles/test.dat.bgz'], database=self.database, on_demand=True)
+
+        import os
+        self.ondemand = os.environ.get('TEST_INTERNET')
+        db_host = os.environ.get('TEST_DB_HOST')
+
+        if db_host:
+            self.db = UniprotDB.create_index(['TestFiles/test.dat.bgz'],
+                                             host=(db_host,),
+                                             database=self.database,
+                                             on_demand=True)
+        else:
+            self.db = UniprotDB.create_index(['TestFiles/test.dat.bgz'],
+                                             database=self.database,
+                                             on_demand=True)
 
     def tearDown(self):
         pass
@@ -61,9 +82,32 @@ class AsyncTest(MongoTest):
     def setUp(self):
         from UniprotDB.AsyncMongoDB import MongoDatabase
         self.database = 'test_uni2'
-        self.db = UniprotDB.create_index(['TestFiles/test.dat.bgz'],
-                                         database=self.database, on_demand=True, dbtype=MongoDatabase)
 
+        import os
+        self.ondemand = os.environ.get('TEST_INTERNET')
+        db_host = os.environ.get('TEST_DB_HOST')
+
+        if db_host:
+            self.db = UniprotDB.create_index(['TestFiles/test.dat.bgz'], host=(db_host,),
+                                             database=self.database, on_demand=True, dbtype=MongoDatabase)
+        else:
+            self.db = UniprotDB.create_index(['TestFiles/test.dat.bgz'],
+                                             database=self.database, on_demand=True, dbtype=MongoDatabase)
+
+class LMDBTest(MongoTest):
+
+    def setUp(self):
+        from UniprotDB.LMDB import LMDBDatabase
+        import os
+        self.database = 'test_uni2'
+        self.ondemand = os.environ.get('TEST_INTERNET')
+
+        self.db = UniprotDB.create_index(['TestFiles/test.dat.bgz'], host='test.lmdb',
+                                         database=self.database, on_demand=True, dbtype=LMDBDatabase)
+
+    def tearDown(self):
+        import shutil
+        shutil.rmtree('test.lmdb')
 
 if __name__ == '__main__':
     unittest.main()

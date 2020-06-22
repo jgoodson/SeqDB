@@ -16,6 +16,14 @@ def _get_date(dateline):
     return datetime(int(year), months[month], int(day))
 
 
+def _create_record_swiss(raw_record, compressor):
+    lines = raw_record.decode()[:500].split('\n')
+    return dict(
+        _id=lines[1].split()[1].strip(';'),
+        raw_record=compressor.compress(raw_record),
+    )
+
+
 def _create_protein_swiss(raw_record, compressor):
     lines = raw_record.decode().split('\n')
     desc_lines = []
