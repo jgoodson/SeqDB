@@ -10,9 +10,9 @@ from UniprotDB._utils import _create_record_swiss
 
 class LMDBDatabase(BaseDatabase):
 
-    def __init__(self, database, host='seqdb.lmdb', index=True, **kwargs):
+    def __init__(self, database, host='seqdb.lmdb', index=True, map_size=int(1024**4), **kwargs):
         super().__init__(database, host, **kwargs)
-        self.client = lmdb.open(host, max_dbs=1+len(self.indices))
+        self.client = lmdb.open(host, max_dbs=1+len(self.indices), map_size=map_size)
         self.has_index = index
         self._setup_dbs()
 
