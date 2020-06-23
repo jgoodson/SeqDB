@@ -31,20 +31,22 @@ def _create_protein_swiss(raw_record: bytes, compressor: zstd.ZstdCompressor) ->
     desc_lines = []
     refs = defaultdict(list)
     genome = []
-    for l in lines:
-        s = l[:2]
+    taxid = -1
+    dateline = ''
+    for line in lines:
+        s = line[:2]
         if s == 'CC' or s == '  ':
             continue
         elif s == 'DT':
-            dateline = l
+            dateline = line
         elif s == 'DE':
-            desc_lines.append(l.split(maxsplit=1)[1])
+            desc_lines.append(line.split(maxsplit=1)[1])
         elif s == 'OS':
-            genome.append(l.split(maxsplit=1)[1].strip('. '))
+            genome.append(line.split(maxsplit=1)[1].strip('. '))
         elif s == 'OX':
-            taxid = int(l.split('=')[1].split()[0].strip(';'))
+            taxid = int(line.split('=')[1].split()[0].strip(';'))
         elif s == 'DR':
-            ref = l.split(maxsplit=1)[1]
+            ref = line.split(maxsplit=1)[1]
             dec = ref.strip('.').split(';')
             refs[dec[0]].append(dec[1].strip())
 

@@ -47,7 +47,7 @@ class MongoTest(unittest.TestCase):
         with gzip.open('TestFiles/testbig.dat.gz', 'rb') as h:
             self.db.update([h])
         with gzip.open('TestFiles/testbig.dat.gz', 'rb') as h:
-            ids = set(l.split()[1].decode() for l in h if l.startswith(b'ID'))
+            ids = set(line.split()[1].decode() for line in h if line.startswith(b'ID'))
         inserted_ids = set(e.name for e in self.db)
         self.assertEqual(inserted_ids, ids)
 
@@ -94,6 +94,7 @@ class AsyncTest(MongoTest):
             self.db = UniprotDB.create_index(['TestFiles/test.dat.bgz'],
                                              database=self.database, on_demand=self.ondemand, dbtype=MongoDatabase)
 
+
 class LMDBTest(MongoTest):
 
     def setUp(self):
@@ -108,6 +109,7 @@ class LMDBTest(MongoTest):
     def tearDown(self):
         import shutil
         shutil.rmtree('test.lmdb')
+
 
 if __name__ == '__main__':
     unittest.main()

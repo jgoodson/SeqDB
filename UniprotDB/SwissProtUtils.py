@@ -36,7 +36,8 @@ def parse_raw_swiss(handle: BinaryIO, filter_fn: Callable[[bytes], bool] = None)
     in the iterator, if False it is not.
     """
     if not filter_fn:
-        filter_fn = lambda r: True
+        def filter_fn(r):
+            return True
     for res in _get_record(handle):
         if filter_fn(res):
             yield res

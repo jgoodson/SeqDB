@@ -16,12 +16,13 @@ import gzip
 
 sprot_url = 'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_sprot.dat.gz'
 trembl_url = 'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_trembl.dat.gz'
-trembl_taxa_prefix = 'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/taxonomic_divisions/uniprot_trembl_{}.dat.gz'
+trembl_taxa_prefix = 'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/taxonomic_divisions' \
+                     '/uniprot_trembl_{}.dat.gz '
 
 query_req = 'https://www.uniprot.org/uniprot/?query={}&format=list'
 fetch_req = 'https://www.uniprot.org/uniprot/{}.txt'
 uniparc_s_req = 'http://www.uniprot.org/uniparc/?query={}&format=list'
-unipart_f_req = 'http://www.uniprot.org/uniparc/{}.xml'
+uniparc_f_req = 'http://www.uniprot.org/uniparc/{}.xml'
 
 
 def search_uniprot(value: str, retries: int = 3) -> Generator[bytes, None, None]:
@@ -30,16 +31,16 @@ def search_uniprot(value: str, retries: int = 3) -> Generator[bytes, None, None]
         try:
             possible_ids = requests.get(query_req.format(value)).content.split()
             break
-        except (SSLError, ConnectionError) as e:
+        except (SSLError, ConnectionError):
             pass
 
     raw_record = None
-    for id in possible_ids[:5]:
+    for pid in possible_ids[:5]:
         for x in range(retries):
             try:
-                raw_record = requests.get(fetch_req.format(id.decode())).content
+                raw_record = requests.get(fetch_req.format(pid.decode())).content
                 break
-            except (SSLError, ConnectionError) as e:
+            except (SSLError, ConnectionError):
                 pass
         if raw_record:
             yield raw_record
@@ -132,8 +133,3 @@ def create_index(flatfiles: Iterable, host: Union[str, tuple] = (), database: st
     for f in handles:
         f.close()
     return s
-
-
-if __name__ == '__main__':
-    s = SeqDB()
-    s.update(['test.dat.bgz'])

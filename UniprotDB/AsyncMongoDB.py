@@ -15,11 +15,7 @@ class MongoDatabase(BaseDatabase):
 
     def __init__(self, database: str, host: Tuple[str], **kwargs):
         super().__init__(database, host, **kwargs)
-        try:
-            self.loop = asyncio.get_event_loop()
-        except:
-            self.loop = asyncio.new_event_loop()
-            asyncio.set_event_loop(self.loop)
+        self.loop = asyncio.get_event_loop()
         self.client = motor.motor_asyncio.AsyncIOMotorClient(*host)
         self.col = self.client[database].proteins
 

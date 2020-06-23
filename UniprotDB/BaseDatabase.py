@@ -43,7 +43,7 @@ class BaseDatabase(ABC):
 
         self._create_indices()
 
-        self.update(seq_handles, filter_fn=filter_fn, loud=loud, total=n_seqs)
+        self.update(seq_handles, filter_fn=filter_fn, loud=loud, total=n_seqs, workers=workers)
 
         if loud:
             print("--initialized database\n", file=sys.stderr)
