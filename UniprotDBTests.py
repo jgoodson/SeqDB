@@ -19,7 +19,7 @@ class MongoTest(unittest.TestCase):
 
     def test_getby_missing(self):
         if self.ondemand:
-            self.assertEqual(self.db.get_by('_id', 'P0A784').id, 'P0A784')
+            self.assertEqual(self.db.get_by('_id', 'P0A784')[0].id, 'P0A784')
         else:
             self.skipTest('Not testing on-demand feature')
 
@@ -67,11 +67,11 @@ class MongoTest(unittest.TestCase):
             self.db = UniprotDB.create_index(['TestFiles/test.dat.bgz'],
                                              host=(db_host,),
                                              database=self.database,
-                                             on_demand=True)
+                                             on_demand=self.ondemand)
         else:
             self.db = UniprotDB.create_index(['TestFiles/test.dat.bgz'],
                                              database=self.database,
-                                             on_demand=True)
+                                             on_demand=self.ondemand)
 
     def tearDown(self):
         pass
@@ -89,10 +89,10 @@ class AsyncTest(MongoTest):
 
         if db_host:
             self.db = UniprotDB.create_index(['TestFiles/test.dat.bgz'], host=(db_host,),
-                                             database=self.database, on_demand=True, dbtype=MongoDatabase)
+                                             database=self.database, on_demand=self.ondemand, dbtype=MongoDatabase)
         else:
             self.db = UniprotDB.create_index(['TestFiles/test.dat.bgz'],
-                                             database=self.database, on_demand=True, dbtype=MongoDatabase)
+                                             database=self.database, on_demand=self.ondemand, dbtype=MongoDatabase)
 
 class LMDBTest(MongoTest):
 
@@ -103,7 +103,7 @@ class LMDBTest(MongoTest):
         self.ondemand = os.environ.get('TEST_INTERNET')
 
         self.db = UniprotDB.create_index(['TestFiles/test.dat.bgz'], host='test.lmdb',
-                                         database=self.database, on_demand=True, dbtype=LMDBDatabase)
+                                         database=self.database, on_demand=self.ondemand, dbtype=LMDBDatabase)
 
     def tearDown(self):
         import shutil

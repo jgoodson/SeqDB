@@ -1,6 +1,10 @@
 import sys
 from abc import ABC, abstractmethod
 from functools import partial
+from typing import Union, Callable, Iterable, Generator, List
+
+import zstd
+from Bio.SeqRecord import SeqRecord
 
 
 class BaseDatabase(ABC):
@@ -9,14 +13,15 @@ class BaseDatabase(ABC):
                'taxid']
 
     @abstractmethod
-    def __init__(self, database, host, compressor=None, decompressor=None, create_protein_func=None):
+    def __init__(self, database: str, host: Union[tuple, str],
+                 compressor: zstd.ZstdCompressor = None,
+                 decompressor: zstd.ZstdDecompressor = None,
+                 create_protein_func: Callable = None):
         self.database = database
         self.host = host
         if not compressor:
-            import zstd
             self.compressor = zstd.ZstdCompressor()
         if not decompressor:
-            import zstd
             self.decompressor = zstd.ZstdDecompressor()
         if not create_protein_func:
             from UniprotDB._utils import _create_protein_swiss
@@ -27,7 +32,11 @@ class BaseDatabase(ABC):
         self._extract_seqrecord = partial(_extract_seqrecord, decompressor=self.decompressor)
         pass
 
-    def initialize(self, seq_handles, filter_fn=None, loud=False, n_seqs=None, workers=1):
+    def initialize(self, seq_handles: Iterable,
+                   filter_fn: Callable[[bytes], bool] = None,
+                   loud: bool = False,
+                   n_seqs: int = None,
+                   workers: int = 1) -> None:
         if loud:
             print("--initializating database\n", file=sys.stderr)
         self._reset()
@@ -40,42 +49,46 @@ class BaseDatabase(ABC):
             print("--initialized database\n", file=sys.stderr)
 
     @abstractmethod
-    def get_item(self, item):
+    def get_item(self, item: str) -> SeqRecord:
         pass
 
     @abstractmethod
-    def get_iter(self):
+    def get_iter(self) -> Generator[SeqRecord, None, None]:
         pass
 
     @abstractmethod
-    def get_iterkeys(self):
+    def get_iterkeys(self) -> Generator[str, None, None]:
         pass
 
     @abstractmethod
-    def get_keys(self):
+    def get_keys(self) -> List[str]:
         pass
 
     @abstractmethod
-    def length(self):
+    def length(self) -> int:
         pass
 
     @abstractmethod
-    def get_by(self, attr, value):
+    def get_by(self, attr: str, value: str) -> List[SeqRecord]:
         pass
 
     @abstractmethod
-    def _reset(self):
+    def _reset(self) -> None:
         pass
 
     @abstractmethod
-    def _create_indices(self):
+    def _create_indices(self) -> None:
         pass
 
     @abstractmethod
-    def update(self, handles, filter_fn=None, loud=False, total=None, processes=1):
+    def update(self, handles: Iterable,
+               filter_fn: Callable[[bytes], bool] = None,
+               loud: bool = False,
+               total: int = None,
+               workers: int = 1) -> None:
         pass
 
-    def add_record(self, raw_record, test=None, test_attr=None):
+    def add_record(self, raw_record: bytes, test: str = None, test_attr: str = None) -> bool:
         protein = self.create_protein_func(raw_record)
         if test:
             good = False
@@ -91,5 +104,5 @@ class BaseDatabase(ABC):
         return True
 
     @abstractmethod
-    def add_protein(self, protein):
+    def add_protein(self, protein: dict) -> None:
         pass

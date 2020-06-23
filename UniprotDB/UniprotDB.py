@@ -1,10 +1,13 @@
 import collections
+from typing import Callable, Iterable, Union, Type, Generator, List
 
 try:
     from cStringIO import StringIO as IOFunc
 except ImportError:
     from io import BytesIO as IOFunc
 
+from Bio.SeqRecord import SeqRecord
+from UniprotDB.BaseDatabase import BaseDatabase
 from UniprotDB.MongoDB import MongoDatabase
 import requests
 from requests.exceptions import SSLError, ConnectionError
@@ -21,7 +24,7 @@ uniparc_s_req = 'http://www.uniprot.org/uniparc/?query={}&format=list'
 unipart_f_req = 'http://www.uniprot.org/uniparc/{}.xml'
 
 
-def search_uniprot(value, retries=3):
+def search_uniprot(value: str, retries: int = 3) -> Generator[bytes, None, None]:
     possible_ids = []
     for x in range(retries):
         try:
@@ -30,6 +33,7 @@ def search_uniprot(value, retries=3):
         except (SSLError, ConnectionError) as e:
             pass
 
+    raw_record = None
     for id in possible_ids[:5]:
         for x in range(retries):
             try:
@@ -43,15 +47,18 @@ def search_uniprot(value, retries=3):
 
 class SeqDB(collections.abc.Mapping):
 
-    def __init__(self, database='uniprot', host=(), dbtype=MongoDatabase, on_demand=False):
+    def __init__(self, database: str = 'uniprot',
+                 host: Union[str, tuple] = (),
+                 dbtype: Type[BaseDatabase] = MongoDatabase,
+                 on_demand: bool = False):
         self.db = dbtype(database, host)
         self.database = database
         self.on_demand = on_demand
 
-    def initialize(self, flatfiles, *args, **kwargs):
+    def initialize(self, flatfiles: Iterable, *args, **kwargs) -> None:
         self.db.initialize(flatfiles, *args, **kwargs)
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: str) -> SeqRecord:
         r = self.db.get_item(item)
         if not r and self.on_demand:
             raw_records = search_uniprot(item)
@@ -61,68 +68,67 @@ class SeqDB(collections.abc.Mapping):
                     break
         return r
 
-    def __iter__(self):
+    def __iter__(self) -> Generator[SeqRecord, None, None]:
         return self.db.get_iter()
 
-    def iterkeys(self):
+    def iterkeys(self) -> Generator[str, None, None]:
         return self.db.get_iterkeys()
 
-    def keys(self):
+    def keys(self) -> List[str]:
         return self.db.get_keys()
 
-    def __len__(self):
+    def __len__(self) -> int:
         return self.db.length()
 
-    def get_by(self, attr, value):
-        r = self.db.get_by(attr, value)
-        if not r:
-            raw_records = search_uniprot(value)
-            for raw_record in raw_records:
-                if self.db.add_record(raw_record, test=value, test_attr=attr):
-                    r = self.db.get_item(value)
-                    break
-        return r
+    def get_by(self, attr: str, value: str) -> List[SeqRecord]:
+        return self.db.get_by(attr, value)
 
-    def update(self, handles, filter_fn=None, n_seqs=None, loud=False, workers=1):
+    def update(self, handles: Iterable, filter_fn: Callable = None,
+               n_seqs: int = None, loud: bool = False, workers: int = 1) -> None:
         self.db.update(handles, filter_fn=filter_fn, total=n_seqs, loud=loud, workers=workers)
 
-    def update_swissprot(self, filter_fn=None, workers=1, loud=True):
+    def update_swissprot(self, filter_fn: Callable[[bytes], bool] = None, workers: int = 1, loud: bool = True) -> None:
         import urllib.request
         sprot = gzip.open(urllib.request.urlopen(sprot_url))
         self.update([sprot], filter_fn=filter_fn, loud=loud, workers=workers)
         sprot.close()
 
-    def update_trembl_taxa(self, taxa, filter_fn=None, workers=1, loud=True):
+    def update_trembl_taxa(self, taxa: Iterable, filter_fn: Callable[[bytes], bool] = None,
+                           workers: int = 1, loud: bool = True) -> None:
         import urllib.request
         for taxon in taxa:
             taxon_handle = gzip.open(urllib.request.urlopen(trembl_taxa_prefix.format(taxon)))
             print("Updating {}".format(taxon))
-            self.update([taxon_handle], filter_fn, loud, workers)
+            self.update([taxon_handle], filter_fn, loud, workers=workers)
             taxon_handle.close()
 
-    def update_trembl_prok(self, filter_fn=None, workers=1, loud=True):
+    def update_trembl_prok(self, filter_fn: Callable[[bytes], bool] = None,
+                           workers: int = 1, loud: bool = True) -> None:
         self.update_trembl_taxa(['bacteria', 'archaea'],
                                 filter_fn, workers, loud)
 
-    def update_trembl_euk(self, filter_fn=None, workers=1, loud=True):
+    def update_trembl_euk(self, filter_fn: Callable[[bytes], bool] = None,
+                          workers: int = 1, loud: bool = True) -> None:
         self.update_trembl_taxa(['fungi', 'human', 'invertebrate', 'mammal', 'plant', 'rodent', 'vertebrate', 'virus'],
                                 filter_fn, workers, loud)
 
-    def update_trembl(self, filter_fn=None, workers=1, loud=True):
+    def update_trembl(self, filter_fn: Callable[[bytes], bool] = None,
+                      workers: int = 1, loud: bool = True) -> None:
         import urllib.request
         trembl = gzip.open(urllib.request.urlopen(trembl_url))
         self.update([trembl], filter_fn=filter_fn, loud=loud, workers=workers)
         trembl.close()
 
 
-def create_index(flatfiles, host=(), database='uniprot', filter=None, **kwargs):
+def create_index(flatfiles: Iterable, host: Union[str, tuple] = (), database: str = 'uniprot',
+                 filter_fn: Callable[[bytes], bool] = None, **kwargs) -> SeqDB:
     """
     Given a list of SwissProt flatfile filenames in bgz format and a SQLAlchemy database
     identifier, fill the database with the protein entries and returns a SeqDB object.
     """
     s = SeqDB(database, host, **kwargs)
     handles = [gzip.open(f, 'rb') for f in flatfiles]
-    s.db.initialize(handles, filter_fn=filter)
+    s.db.initialize(handles, filter_fn=filter_fn)
     for f in handles:
         f.close()
     return s

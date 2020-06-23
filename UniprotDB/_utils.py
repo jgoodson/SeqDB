@@ -2,10 +2,12 @@ from collections import defaultdict
 from datetime import datetime
 from io import StringIO as IOFunc
 
+import zstd
 from Bio import SeqIO
+from Bio.SeqRecord import SeqRecord
 
 
-def _get_date(dateline):
+def _get_date(dateline: str) -> datetime:
     months = {
         'JAN': 1, 'FEB': 2, 'MAR': 3,
         'APR': 4, 'MAY': 5, 'JUN': 6,
@@ -16,7 +18,7 @@ def _get_date(dateline):
     return datetime(int(year), months[month], int(day))
 
 
-def _create_record_swiss(raw_record, compressor):
+def _create_record_swiss(raw_record: bytes, compressor: zstd.ZstdCompressor) -> dict:
     lines = raw_record.decode()[:500].split('\n')
     return dict(
         _id=lines[1].split()[1].strip(';'),
@@ -24,7 +26,7 @@ def _create_record_swiss(raw_record, compressor):
     )
 
 
-def _create_protein_swiss(raw_record, compressor):
+def _create_protein_swiss(raw_record: bytes, compressor: zstd.ZstdCompressor) -> dict:
     lines = raw_record.decode().split('\n')
     desc_lines = []
     refs = defaultdict(list)
@@ -58,5 +60,5 @@ def _create_protein_swiss(raw_record, compressor):
     )
 
 
-def _extract_seqrecord(raw_record, decompressor):
+def _extract_seqrecord(raw_record: bytes, decompressor: zstd.ZstdDecompressor) -> SeqRecord:
     return SeqIO.read(IOFunc(decompressor.decompress(raw_record).decode()), 'swiss')

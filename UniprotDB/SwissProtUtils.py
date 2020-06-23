@@ -1,7 +1,8 @@
 import re
+from typing import BinaryIO, Collection, Callable
 
 
-def _get_record(handle, ignore=(b'R', b'C')):
+def _get_record(handle: BinaryIO, ignore: Collection[bytes] = (b'R', b'C')):
     """
     Returns the next complete SwissProt entry in the input handle
     """
@@ -14,7 +15,7 @@ def _get_record(handle, ignore=(b'R', b'C')):
             lines = []
 
 
-def filter_proks(record):
+def filter_proks(record: bytes):
     """
     Example filter function which returns True only for prokaryotes
     """
@@ -25,7 +26,7 @@ def filter_proks(record):
     return good
 
 
-def parse_raw_swiss(handle, filter_fn=None):
+def parse_raw_swiss(handle: BinaryIO, filter_fn: Callable[[bytes], bool] = None):
     """
     Given a raw SwissProt format file containing many sequences, return an iterator of
     raw sequence strings.
