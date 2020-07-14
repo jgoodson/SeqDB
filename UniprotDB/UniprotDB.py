@@ -1,5 +1,5 @@
 import collections
-from typing import Callable, Iterable, Union, Type, Generator, List
+from typing import Callable, Iterable, Union, Generator, List
 
 try:
     from cStringIO import StringIO as IOFunc
@@ -7,8 +7,6 @@ except ImportError:
     from io import BytesIO as IOFunc
 
 from Bio.SeqRecord import SeqRecord
-from UniprotDB.BaseDatabase import BaseDatabase
-from UniprotDB.MongoDB import MongoDatabase
 import requests
 from requests.exceptions import SSLError, ConnectionError
 
@@ -50,9 +48,17 @@ class SeqDB(collections.abc.Mapping):
 
     def __init__(self, database: str = 'uniprot',
                  host: Union[str, tuple] = (),
-                 dbtype: Type[BaseDatabase] = MongoDatabase,
-                 on_demand: bool = False):
-        self.db = dbtype(database, host)
+                 dbtype: str = 'lmdb',
+                 on_demand: bool = False, **kwargs):
+        if dbtype == 'mongo':
+            from UniprotDB.MongoDB import MongoDatabase as dbtype
+        elif dbtype == 'mongoasync':
+            from UniprotDB.AsyncMongoDB import MongoDatabase as dbtype
+        elif dbtype == 'lmdb':
+            from UniprotDB.LMDB import RawLMDBDatabase as dbtype
+        else:
+            raise ValueError(f'dbtype: {dbtype} not known')
+        self.db = dbtype(database, host, **kwargs)
         self.database = database
         self.on_demand = on_demand
 

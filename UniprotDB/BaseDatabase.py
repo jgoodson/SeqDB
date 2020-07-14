@@ -8,9 +8,9 @@ from Bio.SeqRecord import SeqRecord
 
 
 class BaseDatabase(ABC):
-    ids = ['_id', 'RefSeq', 'STRING', 'GeneID', 'PIR', 'Uni_name']
-    indices = ['RefSeq', 'STRING', 'GeneID', 'PIR', 'Uni_name', 'PDB', 'EMBL', 'GO', 'Pfam', 'Proteomes', 'genome',
-               'taxid']
+    ids = ['_id', 'RefSeq', 'STRING', 'GeneID', 'PIR', 'Uni_name', 'seq_sha1']
+    indices = ['RefSeq', 'STRING', 'GeneID', 'PIR', 'Uni_name', 'seq_sha1', 'PDB', 'EMBL', 'GO', 'Pfam', 'Proteomes',
+               'genome', 'taxid']
 
     @abstractmethod
     def __init__(self, database: str, host: Union[tuple, str],

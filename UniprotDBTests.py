@@ -67,11 +67,13 @@ class MongoTest(unittest.TestCase):
             self.db = UniprotDB.create_index(['TestFiles/test.dat.bgz'],
                                              host=(db_host,),
                                              database=self.database,
-                                             on_demand=self.ondemand)
+                                             on_demand=self.ondemand,
+                                             dbtype='mongo')
         else:
             self.db = UniprotDB.create_index(['TestFiles/test.dat.bgz'],
                                              database=self.database,
-                                             on_demand=self.ondemand)
+                                             on_demand=self.ondemand,
+                                             dbtype='mongo')
 
     def tearDown(self):
         pass
@@ -80,7 +82,6 @@ class MongoTest(unittest.TestCase):
 class AsyncTest(MongoTest):
 
     def setUp(self):
-        from UniprotDB.AsyncMongoDB import MongoDatabase
         self.database = 'test_uni2'
 
         import os
@@ -89,26 +90,31 @@ class AsyncTest(MongoTest):
 
         if db_host:
             self.db = UniprotDB.create_index(['TestFiles/test.dat.bgz'], host=(db_host,),
-                                             database=self.database, on_demand=self.ondemand, dbtype=MongoDatabase)
+                                             database=self.database, on_demand=self.ondemand, dbtype='mongoasync')
         else:
             self.db = UniprotDB.create_index(['TestFiles/test.dat.bgz'],
-                                             database=self.database, on_demand=self.ondemand, dbtype=MongoDatabase)
+                                             database=self.database, on_demand=self.ondemand, dbtype='mongoasync')
 
 
 class LMDBTest(MongoTest):
 
     def setUp(self):
-        from UniprotDB.LMDB import LMDBDatabase
         import os
         self.database = 'test_uni2'
         self.ondemand = os.environ.get('TEST_INTERNET')
+        self.dbloc = 'seqdb_test'
 
-        self.db = UniprotDB.create_index(['TestFiles/test.dat.bgz'], host='test.lmdb',
-                                         database=self.database, on_demand=self.ondemand, dbtype=LMDBDatabase)
+        self.db = UniprotDB.create_index(['TestFiles/test.dat.bgz'], host='seqdb_test',
+                                         database=self.database, on_demand=self.ondemand,
+                                         dbtype='lmdb', map_size=int(1024 * 1024 * 1024))
 
     def tearDown(self):
         import shutil
-        shutil.rmtree('test.lmdb')
+        for env in self.db.db.db.values():
+            env.close()
+        for env in self.db.db.index_dbs.values():
+            env.close()
+        shutil.rmtree(self.dbloc)
 
 
 if __name__ == '__main__':

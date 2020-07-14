@@ -17,29 +17,29 @@ class MongoDatabase(BaseDatabase):
         self.col = self.client[database].proteins
 
     def get_item(self, item: str) -> Union[SeqRecord, None]:
-        t = self.col.find_one({'$or': [{i: item} for i in self.ids]})
+        t = self.col.find_one({'$or': [{i: item} for i in self.ids]}, {'raw_record': True})
         if t is None:
             return None
         r = self._extract_seqrecord(t['raw_record'])
         return r
 
     def get_iter(self) -> Generator[SeqRecord, None, None]:
-        for entry in self.col.find({'_id': {'$exists': True}}):
+        for entry in self.col.find({}, {'raw_record': True}):
             yield self._extract_seqrecord(entry['raw_record'])
 
     def get_iterkeys(self) -> Generator[str, None, None]:
-        for i in self.col.find({'_id': {'$exists': True}}, {'_id': 1}):
+        for i in self.col.find({}, {'_id': True}):
             yield i['_id']
 
     def get_keys(self) -> List[str]:
         return self.col.distinct('_id')
 
     def length(self) -> int:
-        return self.col.count_documents({'_id': {'$exists': True}})
+        return self.col.count_documents({})
 
     def get_by(self, attr: str, value: str) -> List[SeqRecord]:
         ret = []
-        res = self.col.find({attr: value}, {'raw_record': 1})
+        res = self.col.find({attr: value}, {'raw_record': True})
         for i in res:
             ret.append(self._extract_seqrecord(i['raw_record']))
         return ret
