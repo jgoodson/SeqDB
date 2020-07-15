@@ -65,7 +65,7 @@ setup(
 
     # You can just specify the packages manually here if your project is
     # simple. Or you can use find_packages().
-    packages=['UniprotDB', 'SeqVecDB'],
+    packages=['UniprotDB'],
 
     # Alternatively, if you want to distribute just a my_module.py, uncomment
     # this:
@@ -75,13 +75,16 @@ setup(
     # your project is installed. For an analysis of "install_requires" vs pip's
     # requirements files see:
     # https://packaging.python.org/en/latest/requirements.html
-    install_requires=['biopython', 'zstandard', 'pymongo', 'tqdm', 'requests'],
+    install_requires=['biopython', 'zstandard', 'tqdm', 'requests', 'lmdb'],
 
     # List additional groups of dependencies here (e.g. development
     # dependencies). You can install these using the following syntax,
     # for example:
     # $ pip install -e .[dev,test]
     extras_require={
+        "async": ['motor'],
+        "mongo": ['pymongo'],
+        "test": ['motor', 'pymongo']
     },
 
     # If there are data files included in your packages that need to be

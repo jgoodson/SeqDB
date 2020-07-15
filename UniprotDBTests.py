@@ -1,15 +1,31 @@
 import gzip
+import os
 import unittest
+
+try:
+    import motor
+
+    HAS_MOTOR = True
+except ImportError:
+    HAS_MOTOR = False
+try:
+    import pymongo
+
+    HAS_MONGO = True
+except ImportError:
+    HAS_MONGO = False
 
 from UniprotDB import UniprotDB
 from UniprotDB.SwissProtUtils import filter_proks
 
+ondemand = os.environ.get('TEST_INTERNET')
 
-class MongoTest(unittest.TestCase):
 
+class SeqDBTest(unittest.TestCase):
     def test_get(self):
         self.assertEqual(self.db.get('Q92AT0').id, 'Q92AT0')
 
+    @unittest.skipUnless(ondemand, "on_demand not enabled for testing")
     def test_get_missing(self):
         if self.ondemand:
             self.assertEqual(self.db.get('P0A784').id, 'P0A784')
@@ -17,6 +33,7 @@ class MongoTest(unittest.TestCase):
         else:
             self.skipTest('Not testing on-demand feature')
 
+    @unittest.skipUnless(ondemand, "on_demand not enabled for testing")
     def test_getby_missing(self):
         if self.ondemand:
             self.assertEqual(self.db.get_by('_id', 'P0A784')[0].id, 'P0A784')
@@ -56,44 +73,47 @@ class MongoTest(unittest.TestCase):
             self.db.update([h], filter_fn=filter_proks)
         self.assertEqual(len(set(e.name for e in self.db)), 70)
 
+
+@unittest.skipUnless(HAS_MONGO, "requires pymongo")
+class MongoTest(SeqDBTest):
+
     def setUp(self):
         self.database = 'test_uni2'
 
         import os
-        self.ondemand = os.environ.get('TEST_INTERNET')
         db_host = os.environ.get('TEST_DB_HOST')
 
         if db_host:
             self.db = UniprotDB.create_index(['TestFiles/test.dat.bgz'],
                                              host=(db_host,),
                                              database=self.database,
-                                             on_demand=self.ondemand,
+                                             on_demand=ondemand,
                                              dbtype='mongo')
         else:
             self.db = UniprotDB.create_index(['TestFiles/test.dat.bgz'],
                                              database=self.database,
-                                             on_demand=self.ondemand,
+                                             on_demand=ondemand,
                                              dbtype='mongo')
 
     def tearDown(self):
         pass
 
 
+@unittest.skipUnless(HAS_MOTOR, "requires motor")
 class AsyncTest(MongoTest):
 
     def setUp(self):
         self.database = 'test_uni2'
 
         import os
-        self.ondemand = os.environ.get('TEST_INTERNET')
         db_host = os.environ.get('TEST_DB_HOST')
 
         if db_host:
             self.db = UniprotDB.create_index(['TestFiles/test.dat.bgz'], host=(db_host,),
-                                             database=self.database, on_demand=self.ondemand, dbtype='mongoasync')
+                                             database=self.database, on_demand=ondemand, dbtype='mongoasync')
         else:
             self.db = UniprotDB.create_index(['TestFiles/test.dat.bgz'],
-                                             database=self.database, on_demand=self.ondemand, dbtype='mongoasync')
+                                             database=self.database, on_demand=ondemand, dbtype='mongoasync')
 
 
 class LMDBTest(MongoTest):
