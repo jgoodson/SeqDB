@@ -2,10 +2,18 @@ import hashlib
 from collections import defaultdict
 from datetime import datetime
 from io import StringIO as IOFunc
+from typing import Generator
 
+import requests
 import zstd
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
+from requests.exceptions import SSLError, ConnectionError
+
+query_req = 'https://www.uniprot.org/uniprot/?query={}&format=list'
+fetch_req = 'https://www.uniprot.org/uniprot/{}.txt'
+uniparc_s_req = 'http://www.uniprot.org/uniparc/?query={}&format=list'
+uniparc_f_req = 'http://www.uniprot.org/uniparc/{}.xml'
 
 
 def _get_date(dateline: str) -> datetime:
@@ -119,3 +127,24 @@ def _create_protein_swiss_bytes(raw_record: bytes, compressor: zstd.ZstdCompress
 
 def _extract_seqrecord(raw_record: bytes, decompressor: zstd.ZstdDecompressor) -> SeqRecord:
     return SeqIO.read(IOFunc(decompressor.decompress(raw_record).decode()), 'swiss')
+
+
+def search_uniprot(value: str, retries: int = 3) -> Generator[bytes, None, None]:
+    possible_ids = []
+    for x in range(retries):
+        try:
+            possible_ids = requests.get(query_req.format(value)).content.split()
+            break
+        except (SSLError, ConnectionError):
+            pass
+
+    raw_record = None
+    for pid in possible_ids[:5]:
+        for x in range(retries):
+            try:
+                raw_record = requests.get(fetch_req.format(pid.decode())).content
+                break
+            except (SSLError, ConnectionError):
+                pass
+        if raw_record:
+            yield raw_record

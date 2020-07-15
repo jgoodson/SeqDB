@@ -2,13 +2,26 @@ import collections
 from typing import Callable, Iterable, Union, Generator, List
 
 try:
+    import motor
+
+    HAS_MOTOR = True
+except ImportError:
+    HAS_MOTOR = False
+try:
+    import pymongo
+
+    HAS_MONGO = True
+except ImportError:
+    HAS_MONGO = False
+
+from UniprotDB._utils import search_uniprot
+
+try:
     from cStringIO import StringIO as IOFunc
 except ImportError:
     from io import BytesIO as IOFunc
 
 from Bio.SeqRecord import SeqRecord
-import requests
-from requests.exceptions import SSLError, ConnectionError
 
 import gzip
 
@@ -16,32 +29,6 @@ sprot_url = 'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowled
 trembl_url = 'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/complete/uniprot_trembl.dat.gz'
 trembl_taxa_prefix = 'ftp://ftp.uniprot.org/pub/databases/uniprot/current_release/knowledgebase/taxonomic_divisions' \
                      '/uniprot_trembl_{}.dat.gz '
-
-query_req = 'https://www.uniprot.org/uniprot/?query={}&format=list'
-fetch_req = 'https://www.uniprot.org/uniprot/{}.txt'
-uniparc_s_req = 'http://www.uniprot.org/uniparc/?query={}&format=list'
-uniparc_f_req = 'http://www.uniprot.org/uniparc/{}.xml'
-
-
-def search_uniprot(value: str, retries: int = 3) -> Generator[bytes, None, None]:
-    possible_ids = []
-    for x in range(retries):
-        try:
-            possible_ids = requests.get(query_req.format(value)).content.split()
-            break
-        except (SSLError, ConnectionError):
-            pass
-
-    raw_record = None
-    for pid in possible_ids[:5]:
-        for x in range(retries):
-            try:
-                raw_record = requests.get(fetch_req.format(pid.decode())).content
-                break
-            except (SSLError, ConnectionError):
-                pass
-        if raw_record:
-            yield raw_record
 
 
 class SeqDB(collections.abc.Mapping):
@@ -51,9 +38,15 @@ class SeqDB(collections.abc.Mapping):
                  dbtype: str = 'lmdb',
                  on_demand: bool = False, **kwargs):
         if dbtype == 'mongo':
-            from UniprotDB.MongoDB import MongoDatabase as dbtype
+            if HAS_MONGO:
+                from UniprotDB.MongoDB import MongoDatabase as dbtype
+            else:
+                raise ModuleNotFoundError('Missing pymongo')
         elif dbtype == 'mongoasync':
-            from UniprotDB.AsyncMongoDB import MongoDatabase as dbtype
+            if HAS_MOTOR:
+                from UniprotDB.AsyncMongoDB import MongoDatabase as dbtype
+            else:
+                raise ModuleNotFoundError('Missing motor')
         elif dbtype == 'lmdb':
             from UniprotDB.LMDB import RawLMDBDatabase as dbtype
         else:
