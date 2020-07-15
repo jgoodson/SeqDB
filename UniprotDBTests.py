@@ -21,7 +21,7 @@ from UniprotDB.SwissProtUtils import filter_proks
 ondemand = os.environ.get('TEST_INTERNET')
 
 
-class SeqDBTest(unittest.TestCase):
+class SeqDBTest(object):
     def test_get(self):
         self.assertEqual(self.db.get('Q92AT0').id, 'Q92AT0')
 
@@ -75,7 +75,7 @@ class SeqDBTest(unittest.TestCase):
 
 
 @unittest.skipUnless(HAS_MONGO, "requires pymongo")
-class MongoTest(SeqDBTest):
+class MongoTest(unittest.TestCase, SeqDBTest):
 
     def setUp(self):
         self.database = 'test_uni2'
@@ -100,7 +100,7 @@ class MongoTest(SeqDBTest):
 
 
 @unittest.skipUnless(HAS_MOTOR, "requires motor")
-class AsyncTest(MongoTest):
+class AsyncTest(unittest.TestCase, SeqDBTest):
 
     def setUp(self):
         self.database = 'test_uni2'
@@ -116,7 +116,7 @@ class AsyncTest(MongoTest):
                                              database=self.database, on_demand=ondemand, dbtype='mongoasync')
 
 
-class LMDBTest(MongoTest):
+class LMDBTest(unittest.TestCase, SeqDBTest):
 
     def setUp(self):
         import os
