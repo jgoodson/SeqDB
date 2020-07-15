@@ -98,6 +98,7 @@ class BaseDatabase(ABC):
                 for ref in ([test_attr] if test_attr else self.ids):
                     if test in protein.get(ref, []):
                         good = True
+                        break
             if not good:
                 return False
         self.add_protein(protein)

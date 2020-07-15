@@ -34,24 +34,27 @@ trembl_taxa_prefix = 'ftp://ftp.uniprot.org/pub/databases/uniprot/current_releas
 class SeqDB(collections.abc.Mapping):
 
     def __init__(self, database: str = 'uniprot',
-                 host: Union[str, tuple] = (),
+                 host: Union[str, tuple] = '',
                  dbtype: str = 'lmdb',
                  on_demand: bool = False, **kwargs):
         if dbtype == 'mongo':
             if HAS_MONGO:
-                from UniprotDB.MongoDB import MongoDatabase as dbtype
+                from UniprotDB.MongoDB import MongoDatabase as BaseDB
             else:
                 raise ModuleNotFoundError('Missing pymongo')
         elif dbtype == 'mongoasync':
             if HAS_MOTOR:
-                from UniprotDB.AsyncMongoDB import MongoDatabase as dbtype
+                from UniprotDB.AsyncMongoDB import MongoDatabase as BaseDB
             else:
                 raise ModuleNotFoundError('Missing motor')
         elif dbtype == 'lmdb':
-            from UniprotDB.LMDB import RawLMDBDatabase as dbtype
+            from UniprotDB.LMDB import RawLMDBDatabase as BaseDB
         else:
-            raise ValueError(f'dbtype: {dbtype} not known')
-        self.db = dbtype(database, host, **kwargs)
+            raise ValueError(f'BaseDB: {dbtype} not known')
+        if host:
+            self.db = BaseDB(database, host, **kwargs)
+        else:
+            self.db = BaseDB(database, **kwargs)
         self.database = database
         self.on_demand = on_demand
 
@@ -120,15 +123,14 @@ class SeqDB(collections.abc.Mapping):
         trembl.close()
 
 
-def create_index(flatfiles: Iterable, host: Union[str, tuple] = (), database: str = 'uniprot',
-                 filter_fn: Callable[[bytes], bool] = None, **kwargs) -> SeqDB:
+def create_index(flatfiles: Iterable, host: Union[str, tuple] = (),
+                 dbtype: str = 'lmdb', n_jobs: int = 1, **kwargs) -> SeqDB:
     """
-    Given a list of SwissProt flatfile filenames in bgz format and a SQLAlchemy database
-    identifier, fill the database with the protein entries and returns a SeqDB object.
+    Given a list of SwissProt flatfile filenames in uncompressed, gzip, or zstd format and a database
+    host/filename + dbtype, fill the database with the protein entries and returns a SeqDB object.
     """
-    s = SeqDB(database, host, **kwargs)
-    handles = [gzip.open(f, 'rb') for f in flatfiles]
-    s.db.initialize(handles, filter_fn=filter_fn)
-    for f in handles:
-        f.close()
+    from .data_loader import process_main
+    s = process_main(flatfiles, host,
+                     dbtype=dbtype, initialize=True, verbose=True, n_jobs=n_jobs, **kwargs)
+
     return s

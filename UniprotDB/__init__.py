@@ -1,0 +1,1 @@
+from .UniprotDB import SeqDB

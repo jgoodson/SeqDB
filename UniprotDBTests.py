@@ -18,7 +18,7 @@ except ImportError:
 from UniprotDB import UniprotDB
 from UniprotDB.SwissProtUtils import filter_proks
 
-ondemand = os.environ.get('TEST_INTERNET')
+ondemand = bool(os.environ.get('TEST_INTERNET'))
 
 
 class SeqDBTest(object):
@@ -27,18 +27,16 @@ class SeqDBTest(object):
 
     @unittest.skipUnless(ondemand, "on_demand not enabled for testing")
     def test_get_missing(self):
-        if self.ondemand:
-            self.assertEqual(self.db.get('P0A784').id, 'P0A784')
-            self.assertEqual(self.db.get('ORN_HUMAN').id, 'Q9Y3B8')
-        else:
-            self.skipTest('Not testing on-demand feature')
+        self.db.on_demand = True
+        self.assertEqual(self.db.get('P0A784').id, 'P0A784')
+        self.assertEqual(self.db.get('ORN_HUMAN').id, 'Q9Y3B8')
 
-    @unittest.skipUnless(ondemand, "on_demand not enabled for testing")
-    def test_getby_missing(self):
-        if self.ondemand:
-            self.assertEqual(self.db.get_by('_id', 'P0A784')[0].id, 'P0A784')
-        else:
-            self.skipTest('Not testing on-demand feature')
+    # Disabled because it isn't reasonable to hook the get_by() function to download
+    # from Uniprot because of the potential huge amount of data it would need to pull
+    # @unittest.skipUnless(ondemand, "on_demand not enabled for testing")
+    # def test_getby_missing(self):
+    #    self.db.on_demand = True
+    #    self.assertEqual(self.db.get_by('_id', 'P0A784')[0].id, 'P0A784')
 
     def test_iter(self):
         self.assertIsInstance(next(self.db.iterkeys()), str)
@@ -53,9 +51,9 @@ class SeqDBTest(object):
         self.assertEqual(len(self.db), 1)
 
     def test_getby(self):
+        self.assertEqual(self.db.get_by('RefSeq', 'WP_010990982.1')[0].id, "Q92AT0")
         self.assertEqual(self.db.get_by('_id', 'Q92AT0')[0].id, "Q92AT0")
         self.assertEqual(self.db.get_by('Uni_name', '12OLP_LISIN')[0].id, "Q92AT0")
-        self.assertEqual(self.db.get_by('RefSeq', 'WP_010990982.1')[0].id, "Q92AT0")
 
     def test_fetch(self):
         self.assertEqual(self.db.get('Q92AT0').id, 'Q92AT0')
@@ -82,17 +80,14 @@ class MongoTest(unittest.TestCase, SeqDBTest):
 
         import os
         db_host = os.environ.get('TEST_DB_HOST')
-
         if db_host:
             self.db = UniprotDB.create_index(['TestFiles/test.dat.bgz'],
                                              host=(db_host,),
                                              database=self.database,
-                                             on_demand=ondemand,
                                              dbtype='mongo')
         else:
             self.db = UniprotDB.create_index(['TestFiles/test.dat.bgz'],
                                              database=self.database,
-                                             on_demand=ondemand,
                                              dbtype='mongo')
 
     def tearDown(self):
@@ -110,22 +105,19 @@ class AsyncTest(unittest.TestCase, SeqDBTest):
 
         if db_host:
             self.db = UniprotDB.create_index(['TestFiles/test.dat.bgz'], host=(db_host,),
-                                             database=self.database, on_demand=ondemand, dbtype='mongoasync')
+                                             database=self.database, dbtype='mongoasync')
         else:
             self.db = UniprotDB.create_index(['TestFiles/test.dat.bgz'],
-                                             database=self.database, on_demand=ondemand, dbtype='mongoasync')
+                                             database=self.database, dbtype='mongoasync')
 
 
 class LMDBTest(unittest.TestCase, SeqDBTest):
 
     def setUp(self):
-        import os
         self.database = 'test_uni2'
-        self.ondemand = os.environ.get('TEST_INTERNET')
-        self.dbloc = 'seqdb_test'
 
         self.db = UniprotDB.create_index(['TestFiles/test.dat.bgz'], host='seqdb_test',
-                                         database=self.database, on_demand=self.ondemand,
+                                         database=self.database,
                                          dbtype='lmdb', map_size=int(1024 * 1024 * 1024))
 
     def tearDown(self):
@@ -134,7 +126,7 @@ class LMDBTest(unittest.TestCase, SeqDBTest):
             env.close()
         for env in self.db.db.index_dbs.values():
             env.close()
-        shutil.rmtree(self.dbloc)
+        shutil.rmtree('seqdb_test')
 
 
 if __name__ == '__main__':

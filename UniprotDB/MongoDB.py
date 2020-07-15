@@ -11,7 +11,7 @@ from UniprotDB.SwissProtUtils import parse_raw_swiss
 
 class MongoDatabase(BaseDatabase):
 
-    def __init__(self, database: str, host: Union[str, tuple], **kwargs):
+    def __init__(self, database: str, host: Union[str, tuple] = ('localhost',), **kwargs):
         super().__init__(database, host, **kwargs)
         self.client = pymongo.MongoClient(*host)
         self.col = self.client[database].proteins

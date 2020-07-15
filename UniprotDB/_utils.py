@@ -27,14 +27,6 @@ def _get_date(dateline: str) -> datetime:
     return datetime(int(year), months[month], int(day))
 
 
-def _create_record_swiss(raw_record: bytes, compressor: zstd.ZstdCompressor) -> dict:
-    lines = raw_record.decode()[:500].split('\n')
-    return dict(
-        _id=lines[1].split()[1].strip(';'),
-        raw_record=compressor.compress(raw_record),
-    )
-
-
 def _create_protein_swiss(raw_record: bytes, compressor: zstd.ZstdCompressor) -> dict:
     lines = raw_record.decode().split('\n')
     desc_lines = []
@@ -75,51 +67,6 @@ def _create_protein_swiss(raw_record: bytes, compressor: zstd.ZstdCompressor) ->
         updated=_get_date(dateline),
         raw_record=compressor.compress(raw_record),
         seq_sha1=hashlib.sha1(seq.encode()).hexdigest(),
-        Uni_name=[lines[0].split()[1]],
-        **refs,
-    )
-
-
-def _create_protein_swiss_bytes(raw_record: bytes, compressor: zstd.ZstdCompressor) -> dict:
-    lines = raw_record.split(b'\n')
-    desc_lines = []
-    refs = defaultdict(list)
-    genome = []
-    in_seq = False
-    seq_lines = []
-    taxid = -1
-    dateline = b''
-    for line in lines:
-        s = line[:2]
-        if s == b'CC':
-            continue
-        elif s == b'DT':
-            dateline = line
-        elif s == b'DE':
-            desc_lines.append(line.split(maxsplit=1)[1])
-        elif s == b'OS':
-            genome.append(line.split(maxsplit=1)[1].strip(b'. '))
-        elif s == b'OX':
-            taxid = int(line.split(b'=')[1].split()[0].strip(b';'))
-        elif s == b'DR':
-            ref = line.split(maxsplit=1)[1]
-            dec = ref.strip(b'.').split(b';')
-            refs[dec[0].decode()].append(dec[1].strip())
-        elif in_seq and s == b'  ':
-            seq_lines.append(line)
-        elif s == b'SQ':
-            in_seq = True
-
-    seq = b''.join(b''.join(seq_lines).split())
-
-    return dict(
-        _id=lines[1].split()[1].strip(b';'),
-        genome=b''.join(genome),
-        taxid=taxid,
-        description=b' '.join(desc_lines),
-        updated=_get_date(dateline.decode()),
-        raw_record=compressor.compress(raw_record),
-        seq_sha1=hashlib.sha1(seq).hexdigest().encode(),
         Uni_name=[lines[0].split()[1]],
         **refs,
     )

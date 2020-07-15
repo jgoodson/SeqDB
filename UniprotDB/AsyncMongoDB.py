@@ -13,7 +13,7 @@ from UniprotDB.SwissProtUtils import parse_raw_swiss
 
 class MongoDatabase(BaseDatabase):
 
-    def __init__(self, database: str, host: Tuple[str], **kwargs):
+    def __init__(self, database: str, host: Tuple[str] = ('localhost',), **kwargs):
         super().__init__(database, host, **kwargs)
         self.loop = asyncio.get_event_loop()
         self.client = motor.motor_asyncio.AsyncIOMotorClient(*host)
