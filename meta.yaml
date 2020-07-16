@@ -1,0 +1,35 @@
+{% set data = load_setup_py_data() %}
+
+package:
+  name: uniprotdb
+  version: {{ data.get('version') }}
+
+source:
+  git_rev: master
+  git_url: https://github.com/jgoodson/SeqDB.git
+
+build:
+  noarch: python
+
+requirements:
+  build:
+    - python
+    - setuptools
+    - python-lmdb
+    - biopython>=1.77
+    - pymongo
+    - zstandard
+    - tqdm
+    - requests
+
+  run:
+    - python
+    - python-lmdb
+    - biopython>=1.77
+    - pymongo
+    - zstandard
+    - tqdm
+    - requests
+
+about:
+  home: https://github.com/jgoodson/SeqDB
