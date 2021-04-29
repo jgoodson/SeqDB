@@ -8,5 +8,3 @@ without hitting a web API constantly (slow, probably annoys the server). Essenti
 fancy cache that lets you quickly fetch by multiple types of accessions/IDs.
 
 The LMDB backend is now the default since it is fully embedded and does not require a server.
-
-This now includes a script "seqdb-load" which 
