@@ -5,7 +5,7 @@ from io import StringIO as IOFunc
 from typing import Generator
 
 import requests
-import zstd
+import zstandard
 from Bio import SeqIO
 from Bio.SeqRecord import SeqRecord
 from requests.exceptions import SSLError, ConnectionError
@@ -27,7 +27,7 @@ def _get_date(dateline: str) -> datetime:
     return datetime(int(year), months[month], int(day))
 
 
-def _create_protein_swiss(raw_record: bytes, compressor: zstd.ZstdCompressor) -> dict:
+def _create_protein_swiss(raw_record: bytes, compressor: zstandard.ZstdCompressor) -> dict:
     lines = raw_record.decode().split('\n')
     desc_lines = []
     refs = defaultdict(list)
@@ -72,7 +72,7 @@ def _create_protein_swiss(raw_record: bytes, compressor: zstd.ZstdCompressor) ->
     )
 
 
-def _extract_seqrecord(raw_record: bytes, decompressor: zstd.ZstdDecompressor) -> SeqRecord:
+def _extract_seqrecord(raw_record: bytes, decompressor: zstandard.ZstdDecompressor) -> SeqRecord:
     return SeqIO.read(IOFunc(decompressor.decompress(raw_record).decode()), 'swiss')
 
 

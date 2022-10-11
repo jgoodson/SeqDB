@@ -3,7 +3,7 @@ from abc import ABC, abstractmethod
 from functools import partial
 from typing import Union, Callable, Iterable, Generator, List
 
-import zstd
+import zstandard
 from Bio.SeqRecord import SeqRecord
 
 
@@ -14,15 +14,15 @@ class BaseDatabase(ABC):
 
     @abstractmethod
     def __init__(self, database: str, host: Union[tuple, str],
-                 compressor: zstd.ZstdCompressor = None,
-                 decompressor: zstd.ZstdDecompressor = None,
+                 compressor: zstandard.ZstdCompressor = None,
+                 decompressor: zstandard.ZstdDecompressor = None,
                  create_protein_func: Callable = None):
         self.database = database
         self.host = host
         if not compressor:
-            self.compressor = zstd.ZstdCompressor()
+            self.compressor = zstandard.ZstdCompressor()
         if not decompressor:
-            self.decompressor = zstd.ZstdDecompressor()
+            self.decompressor = zstandard.ZstdDecompressor()
         if not create_protein_func:
             from UniprotDB._utils import _create_protein_swiss
             self.create_protein_func = partial(_create_protein_swiss, compressor=self.compressor)

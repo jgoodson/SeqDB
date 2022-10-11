@@ -26,9 +26,9 @@ def open_dat(dat: str) -> Union[BufferedReader, BinaryIO]:
         import gzip
         return gzip.open(h, 'rb')
     elif dat.endswith('.dat.zst'):
-        import zstd
+        import zstandard
         import io
-        cctx = zstd.ZstdDecompressor()
+        cctx = zstandard.ZstdDecompressor()
         return io.BufferedReader(cctx.stream_reader(open(h, 'rb')))
 
 
