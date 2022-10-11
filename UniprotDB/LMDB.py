@@ -65,7 +65,7 @@ class RawLMDBDatabase(BaseDatabase):
         self.db: Dict[str] = {}
         for i in range(self.db_splits):
             self.db[str(i)] = lmdb.open(os.path.join(self.host, str(i) + '.lmdb'),
-                                        map_size=self.map_size / self.db_splits,
+                                        map_size=self.map_size // self.db_splits,
                                         writemap=True, map_async=True, readahead=False)
         if self.has_index:
             self.index_dbs: Dict[str] = {}
@@ -73,7 +73,7 @@ class RawLMDBDatabase(BaseDatabase):
                 for i in range(self.index_db_splits):
                     self.index_dbs[index + str(i)] = \
                         lmdb.open(os.path.join(self.host, index + str(i) + '.lmdb'),
-                                  map_size=self.map_size / self.index_db_splits,
+                                  map_size=self.map_size // self.index_db_splits,
                                   writemap=True, map_async=True, readahead=False)
         with open(os.path.join(self.host, 'db_info.json'), 'w') as o:
             json.dump({'indexed': self.has_index,
