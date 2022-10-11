@@ -145,7 +145,7 @@ class RawLMDBDatabase(BaseDatabase):
         if self.has_index:
             subdb = attr + self._get_subdb(value, True)
             with self.index_dbs[subdb].begin() as txn:
-                db = self.index_dbs[subdb].open_db(dupsort=True)
+                db = self.index_dbs[subdb].open_db()
                 cur = txn.cursor(db=db)
                 if cur.set_key(value.encode()):
                     for i in cur.iternext_dup():
@@ -171,17 +171,17 @@ class RawLMDBDatabase(BaseDatabase):
                         for idx in protein[attr]:
                             subdb = attr + self._get_subdb(idx, True)
                             with self.index_dbs[subdb].begin(write=True) as txn:
-                                db = self.index_dbs[subdb].open_db(dupsort=True)
+                                db = self.index_dbs[subdb].open_db()
                                 txn.put(idx.encode(), bpid, db=db)
                     elif isinstance(protein[attr], str):
                         subdb = attr + self._get_subdb(protein[attr], True)
                         with self.index_dbs[subdb].begin(write=True) as txn:
-                            db = self.index_dbs[subdb].open_db(dupsort=True)
+                            db = self.index_dbs[subdb].open_db()
                             txn.put(protein[attr].encode(), bpid, db=db)
                     else:
                         subdb = attr + self._get_subdb(str(protein[attr]), True)
                         with self.index_dbs[subdb].begin(write=True) as txn:
-                            db = self.index_dbs[subdb].open_db(dupsort=True)
+                            db = self.index_dbs[subdb].open_db()
                             txn.put(str(protein[attr]).encode(), bpid, db=db)
 
         return True
