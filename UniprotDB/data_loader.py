@@ -101,6 +101,7 @@ def process(host: str, dbtype: str, filename: str, filter_fn: Optional[Callable]
     s = SeqDB(host=host, dbtype=dbtype, **db_kwargs)
     try:
         with open(filename, 'rb') as fh:
+            logging.debug(f"Opened {filename} for reading")
             s.update([fh], loud=False, filter_fn=filter_fn)
     except Exception as e:
         print(''.join(traceback.format_tb(e.__traceback__)))
