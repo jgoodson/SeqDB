@@ -1,4 +1,5 @@
 import re
+from sys import set_asyncgen_hooks
 from typing import BinaryIO, Collection, Callable
 
 
@@ -24,6 +25,18 @@ def filter_proks(record: bytes):
     base_taxa = taxa.split(b'; ')[0]
     good = base_taxa in good_taxa
     return good
+
+
+def filter_taxa(good_taxa: Collection) -> Callable[[bytes], bool]:
+    """
+    Filter function generator for arbitray taxa
+    """
+    def filter_fn(record: bytes):
+        taxa = re.search(b'OC.*\n', record).group()[5:]
+        base_taxa = taxa.split(b'; ')[0]
+        good = base_taxa in good_taxa
+        return good
+    return filter_fn
 
 
 def parse_raw_swiss(handle: BinaryIO, filter_fn: Callable[[bytes], bool] = None):
