@@ -85,7 +85,7 @@ def make_fifos(jobs: int, directory: str) -> List[str]:
     return fifos
 
 
-def process(host: str, dbtype: str, filename: str, filter_fn: Optional[Callable], 
+def process(host: str, dbtype: str, filename: str, filter_fn: Optional[Callable]=None, 
             db_kwargs=None) -> None:
     """
     Function to create a SeqDB, open a file and write the SwissProt data to the SeqDB.
@@ -129,8 +129,19 @@ def main():
 
     logging.basicConfig(filename='data_loader.log', level=logging.DEBUG if args.debug else logging.INFO)
 
-    process_main(args.dats, args.location, args.type, args.initialize, args.verbose, args.jobs, args.num_seqs,
-                 db_splits=args.lmdb_db_splits, index_db_splits=args.lmdb_index_splits, index=args.no_index)
+    process_main(dats=args.dats, 
+                 location=args.location, 
+                 dbtype=args.type, 
+                 initialize=args.initialize, 
+                 verbose=args.verbose, 
+                 n_jobs=args.jobs, 
+                 num_seqs=args.num_seqs,
+                 db_kwargs={
+                    'db_splits': args.lmdb_db_splits, 
+                    'index_db_splits': args.lmdb_index_splits, 
+                    'index': args.no_index
+                    }
+                )
 
 
 def process_main(dats: Iterable[str],
@@ -140,7 +151,7 @@ def process_main(dats: Iterable[str],
                  verbose: bool = True,
                  n_jobs: int = 8,
                  num_seqs: int = 0,
-                 filter_fn: Callable = lambda _: _,
+                 filter_fn: Callable = lambda _: True,
                  db_kwargs: Optional[dict] = None) -> SeqDB:
     """
     Main function for parallel data loading into a SeqDB.
