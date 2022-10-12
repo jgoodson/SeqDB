@@ -4,7 +4,7 @@ import os
 import tempfile
 import traceback
 from io import BufferedReader
-from typing import Iterable, Union, BinaryIO, Tuple, Generator, List
+from typing import Iterable, Union, BinaryIO, Tuple, Generator, List, Optional, Callable
 
 from UniprotDB.UniprotDB import SeqDB
 
@@ -85,22 +85,23 @@ def make_fifos(jobs: int, directory: str) -> List[str]:
     return fifos
 
 
-def process(host: str, dbtype: str, filename: str, kwargs=None) -> None:
+def process(host: str, dbtype: str, filename: str, filter_fn: Optional[Callable], 
+            db_kwargs=None) -> None:
     """
     Function to create a SeqDB, open a file and write the SwissProt data to the SeqDB.
     Intended for use in a multiprocessing pool
     :param host: hostname or folder location for the SeqDB
     :param dbtype: type of datastore ('lmdb', 'mongo', ...)
     :param filename: file to open for reading
-    :param kwargs: dictionary of additional arguments for SeqDB
+    :param db_kwargs: dictionary of additional arguments for SeqDB
     :return: None
     """
     if kwargs is None:
         kwargs = {}
-    s = SeqDB(host=host, dbtype=dbtype, **kwargs)
+    s = SeqDB(host=host, dbtype=dbtype, **db_kwargs)
     try:
         with open(filename, 'rb') as fh:
-            s.update([fh], loud=False)
+            s.update([fh], loud=False, filter_fn=filter_fn)
     except Exception as e:
         print(''.join(traceback.format_tb(e.__traceback__)))
         print(e)
@@ -139,7 +140,8 @@ def process_main(dats: Iterable[str],
                  verbose: bool = True,
                  n_jobs: int = 8,
                  num_seqs: int = 0,
-                 **kwargs) -> SeqDB:
+                 filter_fn: Callable = lambda _: _,
+                 db_kwargs: Optional[dict] = None) -> SeqDB:
     """
     Main function for parallel data loading into a SeqDB.
     :param dats: Iterable of filenames/urls for input
@@ -149,13 +151,13 @@ def process_main(dats: Iterable[str],
     :param verbose: bool Whether to show a progress bar
     :param n_jobs: number of parallel processes to use
     :param num_seqs: cosmetic number of input sequences for progress bar
-    :param kwargs: dictionary with extra parameters for SeqDB
+    :param db_kwargs: dictionary with extra parameters for SeqDB
     :return: SeqDB object with the resulting data
     """
     from multiprocessing import get_context
     from time import sleep
 
-    seqdb = SeqDB(host=location, dbtype=dbtype, **kwargs)
+    seqdb = SeqDB(host=location, dbtype=dbtype, **db_kwargs)
     if initialize:
         logging.debug('Initializing db')
         seqdb.initialize([], loud=False)
@@ -176,7 +178,7 @@ def process_main(dats: Iterable[str],
             for dat in dats:
                 with open_dat(dat) as fh:
                     logging.debug('Created pool')
-                    res = p.starmap_async(process, [(location, dbtype, fifo, kwargs) for fifo in fifos], chunksize=1)
+                    res = p.starmap_async(process, [(location, dbtype, fifo, filter_fn, db_kwargs) for fifo in fifos], chunksize=1)
                     logging.debug('Started async processing')
                     logging.debug(f'Opening fifos {fifos}')
                     output_handles = [open(f, 'wb') for f in fifos]
