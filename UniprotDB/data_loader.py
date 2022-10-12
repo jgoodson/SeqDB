@@ -96,8 +96,8 @@ def process(host: str, dbtype: str, filename: str, filter_fn: Optional[Callable]
     :param db_kwargs: dictionary of additional arguments for SeqDB
     :return: None
     """
-    if kwargs is None:
-        kwargs = {}
+    if db_kwargs is None:
+        db_kwargs = {}
     s = SeqDB(host=host, dbtype=dbtype, **db_kwargs)
     try:
         with open(filename, 'rb') as fh:
