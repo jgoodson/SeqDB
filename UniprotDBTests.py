@@ -62,14 +62,14 @@ class SeqDBTest(object):
         with gzip.open('TestFiles/testbig.dat.gz', 'rb') as h:
             self.db.update([h])
         with gzip.open('TestFiles/testbig.dat.gz', 'rb') as h:
-            ids = set(line.split()[1].decode() for line in h if line.startswith(b'ID'))
-        inserted_ids = set(e.name for e in self.db)
+            ids = {line.split()[1].decode() for line in h if line.startswith(b'ID')}
+        inserted_ids = {e.name for e in self.db}
         self.assertEqual(inserted_ids, ids)
 
     def test_update_filtered(self):
         with gzip.open('TestFiles/testbig.dat.gz', 'rb') as h:
             self.db.update([h], filter_fn=filter_proks)
-        self.assertEqual(len(set(e.name for e in self.db)), 70)
+        self.assertEqual(len({e.name for e in self.db}), 70)
 
 
 @unittest.skipUnless(HAS_MONGO, "requires pymongo")
@@ -79,8 +79,7 @@ class MongoTest(unittest.TestCase, SeqDBTest):
         self.database = 'test_uni2'
 
         import os
-        db_host = os.environ.get('TEST_DB_HOST')
-        if db_host:
+        if db_host := os.environ.get('TEST_DB_HOST'):
             self.db = UniprotDB.create_index(['TestFiles/test.dat.bgz'],
                                              host=(db_host,),
                                              database=self.database,
@@ -101,9 +100,7 @@ class AsyncTest(unittest.TestCase, SeqDBTest):
         self.database = 'test_uni2'
 
         import os
-        db_host = os.environ.get('TEST_DB_HOST')
-
-        if db_host:
+        if db_host := os.environ.get('TEST_DB_HOST'):
             self.db = UniprotDB.create_index(['TestFiles/test.dat.bgz'], host=(db_host,),
                                              database=self.database, dbtype='mongoasync')
         else:

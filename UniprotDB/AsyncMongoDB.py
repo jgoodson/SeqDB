@@ -21,18 +21,13 @@ class MongoDatabase(BaseDatabase):
 
     def get_item(self, item: str) -> Union[SeqRecord, None]:
         t = self.loop.run_until_complete(self.col.find_one({'$or': [{i: item} for i in self.ids]}))
-        if t is None:
-            return None
-        r = self._extract_seqrecord(t['raw_record'])
-        return r
+        return None if t is None else self._extract_seqrecord(t['raw_record'])
 
     def get_iter(self) -> Generator[SeqRecord, None, None]:
         q = asyncio.Queue()
         self.loop.create_task(self._get_iter(q))
-        r = self.loop.run_until_complete(q.get())
-        while r:
+        while r := self.loop.run_until_complete(q.get()):
             yield r
-            r = self.loop.run_until_complete(q.get())
 
     async def _get_iter(self, q: asyncio.Queue) -> None:
         async for entry in self.col.find({'_id': {'$exists': True}}):
@@ -42,10 +37,8 @@ class MongoDatabase(BaseDatabase):
     def get_iterkeys(self) -> Generator[str, None, None]:
         q = asyncio.Queue()
         self.loop.create_task(self._get_iterkeys(q))
-        r = self.loop.run_until_complete(q.get())
-        while r:
+        while r := self.loop.run_until_complete(q.get()):
             yield r
-            r = self.loop.run_until_complete(q.get())
 
     async def _get_iterkeys(self, q: asyncio.Queue) -> None:
         async for i in self.col.find({'_id': {'$exists': True}}, {'_id': 1}):

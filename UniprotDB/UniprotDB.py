@@ -101,7 +101,7 @@ class SeqDB(collections.abc.Mapping):
         import urllib.request
         for taxon in taxa:
             taxon_handle = gzip.open(urllib.request.urlopen(trembl_taxa_prefix.format(taxon)))
-            print("Updating {}".format(taxon))
+            print(f"Updating {taxon}")
             self.update([taxon_handle], filter_fn, loud, workers=workers)
             taxon_handle.close()
 
@@ -130,7 +130,12 @@ def create_index(flatfiles: Iterable, host: Union[str, tuple] = (),
     host/filename + dbtype, fill the database with the protein entries and returns a SeqDB object.
     """
     from .data_loader import process_main
-    s = process_main(flatfiles, host,
-                     dbtype=dbtype, initialize=True, verbose=True, n_jobs=n_jobs, **kwargs)
-
-    return s
+    return process_main(
+        flatfiles,
+        host,
+        dbtype=dbtype,
+        initialize=True,
+        verbose=True,
+        n_jobs=n_jobs,
+        **kwargs
+    )

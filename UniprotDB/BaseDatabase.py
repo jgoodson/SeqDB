@@ -30,7 +30,6 @@ class BaseDatabase(ABC):
             self.create_protein_func = partial(create_protein_func, compressor=self.compressor)
         from UniprotDB._utils import _extract_seqrecord
         self._extract_seqrecord = partial(_extract_seqrecord, decompressor=self.decompressor)
-        pass
 
     def initialize(self, seq_handles: Iterable,
                    filter_fn: Callable[[bytes], bool] = None,
@@ -91,9 +90,7 @@ class BaseDatabase(ABC):
     def add_record(self, raw_record: bytes, test: str = None, test_attr: str = None) -> bool:
         protein = self.create_protein_func(raw_record)
         if test:
-            good = False
-            if test == protein['_id']:
-                good = True
+            good = test == protein['_id']
             if not good:
                 for ref in ([test_attr] if test_attr else self.ids):
                     if test in protein.get(ref, []):

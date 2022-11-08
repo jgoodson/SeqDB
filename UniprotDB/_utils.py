@@ -78,7 +78,7 @@ def _extract_seqrecord(raw_record: bytes, decompressor: zstd.ZstdDecompressor) -
 
 def search_uniprot(value: str, retries: int = 3) -> Generator[bytes, None, None]:
     possible_ids = []
-    for x in range(retries):
+    for _ in range(retries):
         try:
             possible_ids = requests.get(query_req.format(value)).content.split()
             break
@@ -87,7 +87,7 @@ def search_uniprot(value: str, retries: int = 3) -> Generator[bytes, None, None]
 
     raw_record = None
     for pid in possible_ids[:5]:
-        for x in range(retries):
+        for _ in range(retries):
             try:
                 raw_record = requests.get(fetch_req.format(pid.decode())).content
                 break
