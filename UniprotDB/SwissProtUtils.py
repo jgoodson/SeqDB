@@ -8,7 +8,7 @@ def _get_record(handle: BinaryIO, ignore: Collection[bytes] = (b'R', b'C')):
     """
     lines = []
     for line in handle:
-        if not line[0] in ignore:
+        if line[0] not in ignore:
             lines.append(line)
         if line.startswith(b'//'):
             yield b''.join(lines)
@@ -22,8 +22,7 @@ def filter_proks(record: bytes):
     good_taxa = {b'Archaea', b'Bacteria', }
     taxa = re.search(b'OC.*\n', record).group()[5:]
     base_taxa = taxa.split(b'; ')[0]
-    good = base_taxa in good_taxa
-    return good
+    return base_taxa in good_taxa
 
 
 def parse_raw_swiss(handle: BinaryIO, filter_fn: Callable[[bytes], bool] = None):

@@ -18,10 +18,7 @@ class MongoDatabase(BaseDatabase):
 
     def get_item(self, item: str) -> Union[SeqRecord, None]:
         t = self.col.find_one({'$or': [{i: item} for i in self.ids]}, {'raw_record': True})
-        if t is None:
-            return None
-        r = self._extract_seqrecord(t['raw_record'])
-        return r
+        return None if t is None else self._extract_seqrecord(t['raw_record'])
 
     def get_iter(self) -> Generator[SeqRecord, None, None]:
         for entry in self.col.find({}, {'raw_record': True}):
@@ -38,11 +35,8 @@ class MongoDatabase(BaseDatabase):
         return self.col.count_documents({})
 
     def get_by(self, attr: str, value: str) -> List[SeqRecord]:
-        ret = []
         res = self.col.find({attr: value}, {'raw_record': True})
-        for i in res:
-            ret.append(self._extract_seqrecord(i['raw_record']))
-        return ret
+        return [self._extract_seqrecord(i['raw_record']) for i in res]
 
     def _reset(self) -> None:
         self.client[self.database].proteins.drop()

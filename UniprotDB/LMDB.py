@@ -64,15 +64,20 @@ class RawLMDBDatabase(BaseDatabase):
 
         self.db: Dict[str] = {}
         for i in range(self.db_splits):
-            self.db[str(i)] = lmdb.open(os.path.join(self.host, str(i) + '.lmdb'),
-                                        map_size=self.map_size / self.db_splits,
-                                        writemap=True, map_async=True, readahead=False)
+            self.db[str(i)] = lmdb.open(
+                os.path.join(self.host, f'{str(i)}.lmdb'),
+                map_size=self.map_size / self.db_splits,
+                writemap=True,
+                map_async=True,
+                readahead=False,
+            )
+
         if self.has_index:
             self.index_dbs: Dict[str] = {}
             for index in self.indices:
                 for i in range(self.index_db_splits):
                     self.index_dbs[index + str(i)] = \
-                        lmdb.open(os.path.join(self.host, index + str(i) + '.lmdb'),
+                            lmdb.open(os.path.join(self.host, index + str(i) + '.lmdb'),
                                   map_size=self.map_size / self.index_db_splits,
                                   writemap=True, map_async=True, readahead=False)
         with open(os.path.join(self.host, 'db_info.json'), 'w') as o:
@@ -109,9 +114,7 @@ class RawLMDBDatabase(BaseDatabase):
                     with self.db[self._get_subdb(t.decode())].begin() as txn:
                         t = txn.get(t)
                         break
-        if t is None:
-            return None
-        return self._extract_seqrecord(t)
+        return None if t is None else self._extract_seqrecord(t)
 
     def get_iter(self) -> Generator[SeqRecord, None, None]:
         for i in range(self.db_splits):
@@ -148,8 +151,7 @@ class RawLMDBDatabase(BaseDatabase):
                 db = self.index_dbs[subdb].open_db(dupsort=True)
                 cur = txn.cursor(db=db)
                 if cur.set_key(value.encode()):
-                    for i in cur.iternext_dup():
-                        ret.append(self.get_item(i.decode()))
+                    ret.extend(self.get_item(i.decode()) for i in cur.iternext_dup())
         return ret
 
     def _create_indices(self, background: bool = False) -> None:

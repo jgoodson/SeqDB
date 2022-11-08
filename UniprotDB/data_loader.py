@@ -162,10 +162,7 @@ def process_main(dats: Iterable[str],
 
     if verbose:
         from tqdm import tqdm
-        if num_seqs:
-            pbar = tqdm(total=num_seqs)
-        else:
-            pbar = tqdm()
+        pbar = tqdm(total=num_seqs) if num_seqs else tqdm()
         current = len(seqdb)
 
     with tempfile.TemporaryDirectory() as directory:
@@ -180,7 +177,7 @@ def process_main(dats: Iterable[str],
                     logging.debug('Started async processing')
                     logging.debug(f'Opening fifos {fifos}')
                     output_handles = [open(f, 'wb') for f in fifos]
-                    logging.debug(f'Opening fifos')
+                    logging.debug('Opening fifos')
                     feed_steps = feed_files(fh, output_handles)
                     all_fed = False
                     logging.debug(f'Starting fifo feeding from {dat}')
